@@ -7,7 +7,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryRunController;
-
+use App\Http\Controllers\DeliveryZoneController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -33,11 +33,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus']);
 
     Route::get('/staff/orders', [OrderController::class, 'staffIndex']);
-    Route::get('/staff/orders', [OrderController::class, 'staffIndex']);
     Route::post('/staff/orders/schedule', [OrderController::class, 'schedule']);
+    Route::put('/staff/orders/{order}/payment', [OrderController::class, 'updatePayment']);
+
+    Route::get('/staff/delivery-zones', [DeliveryZoneController::class, 'index']);
+    Route::post('/staff/delivery-zones', [DeliveryZoneController::class, 'store']);
+    Route::put('/staff/delivery-zones/{deliveryZone}', [DeliveryZoneController::class, 'update']);
+    Route::put('/staff/addresses/{address}/zone', [DeliveryZoneController::class, 'assignAddress']);
 
     Route::post('/staff/delivery-runs', [DeliveryRunController::class, 'store']);
     Route::post('/staff/delivery-runs/{deliveryRun}/orders', [DeliveryRunController::class, 'assignOrders']);
+    Route::get('/staff/reports', [OrderController::class, 'reports']);
     });
 
 Route::get('/health', function () {

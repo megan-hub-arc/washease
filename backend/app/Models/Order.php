@@ -21,6 +21,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'notes',
     'requested_at',
     'scheduled_at',
+    'payment_status',
+    'payment_method',
+    'paid_at',
 ])]
 
 class Order extends Model
@@ -56,6 +59,7 @@ class Order extends Model
             'delivery_sequence' => 'integer',
             'requested_at' => 'datetime',
             'scheduled_at' => 'datetime',
+            'paid_at' => 'datetime',
         ];
     }
 }

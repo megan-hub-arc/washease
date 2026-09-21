@@ -120,4 +120,54 @@ class OrderController extends Controller
             'order' => $order,
         ]);
     }
+
+    public function updatePayment(Request $request, Order $order)
+{
+    $this->ensureStaffOrAdmin($request);
+
+    $validated = $request->validate([
+        'payment_status' => ['required', 'string', 'in:Unpaid,Paid'],
+        'payment_method' => ['nullable', 'string', 'in:Cash,GCash,Other'],
+    ]);
+
+    if ($validated['payment_status'] === 'Paid') {
+        $order->update([
+            'payment_status' => 'Paid',
+            'payment_method' => $validated['payment_method'] ?? 'Cash',
+            'paid_at' => now(),
+        ]);
+    } else {
+        $order->update([
+            'payment_status' => 'Unpaid',
+            'payment_method' => null,
+            'paid_at' => null,
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'Payment status updated successfully.',
+        'order' => $order->fresh(),
+    ]);
+    }
+    public function reports(Request $request)
+{
+    $this->ensureStaffOrAdmin($request);
+
+    return response()->json([
+        'total_orders' => Order::count(),
+
+        'total_revenue' => Order::where('payment_status', 'Paid')
+            ->sum('total_amount'),
+
+        'orders_by_status' => Order::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status'),
+
+        'payments' => [
+            'paid' => Order::where('payment_status', 'Paid')->count(),
+            'unpaid' => Order::where('payment_status', 'Unpaid')->count(),
+        ],
+    ]);
+}
 }
