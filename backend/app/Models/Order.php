@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'priority_score',
     'delivery_sequence',
     'delivery_status',
+    'delivery_run_id',
     'notes',
     'requested_at',
     'scheduled_at',

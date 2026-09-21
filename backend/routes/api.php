@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\OrderController;
-
+use App\Http\Controllers\DeliveryRunController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -31,11 +31,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus']);
+
+    Route::get('/staff/orders', [OrderController::class, 'staffIndex']);
     Route::get('/staff/orders', [OrderController::class, 'staffIndex']);
     Route::post('/staff/orders/schedule', [OrderController::class, 'schedule']);
-    Route::get('/staff/orders', [OrderController::class, 'staffIndex']);
 
-});
+    Route::post('/staff/delivery-runs', [DeliveryRunController::class, 'store']);
+    Route::post('/staff/delivery-runs/{deliveryRun}/orders', [DeliveryRunController::class, 'assignOrders']);
+    });
 
 Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
