@@ -36,4 +36,18 @@ class ZtlpaScheduler
             })
             ->values();
     }
+
+    public function schedule(Collection $orders): Collection
+    {
+        $prioritizedOrders = $this->prioritize($orders);
+
+        foreach ($prioritizedOrders as $index => $order) {
+            $order->update([
+                'delivery_sequence' => $index + 1,
+                'delivery_status' => 'Scheduled',
+            ]);
+        }
+
+        return $prioritizedOrders->fresh();
+    }
 }

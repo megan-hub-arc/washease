@@ -5,9 +5,26 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Services\ZtlpaScheduler;
 
 class OrderController extends Controller
 {
+    public function schedule(Request $request, ZtlpaScheduler $scheduler)
+    {
+        $this->ensureStaffOrAdmin($request);
+
+        $orders = Order::with('address.deliveryZone')
+            ->where('status', 'Ready for Delivery')
+            ->where('delivery_status', 'Unscheduled')
+            ->get();
+
+        $scheduledOrders = $scheduler->schedule($orders);
+
+        return response()->json([
+            'message' => 'ZTLPA scheduling completed successfully.',
+            'orders' => $scheduledOrders,
+        ]);
+    }
     private function ensureStaffOrAdmin(Request $request): void
     {
         abort_unless(
