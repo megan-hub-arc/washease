@@ -42,7 +42,7 @@ class OrderController extends Controller
         $this->ensureStaffOrAdmin($request);
 
         return response()->json(
-            Order::with(['user', 'address'])->latest()->get()
+           Order::with(['user', 'address.deliveryZone'])->latest()->get()
         );
     }
 
