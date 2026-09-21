@@ -18,6 +18,10 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    public function deliveryRuns(): HasMany
+    {
+        return $this->hasMany(DeliveryRun::class, 'rider_id');
+    }
     public function addresses(): HasMany
     {
         return $this->hasMany(Address::class);

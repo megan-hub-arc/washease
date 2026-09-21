@@ -32,6 +32,10 @@ class Order extends Model
         'Ready for Delivery',
         'Delivered',
     ];
+    public function deliveryRun(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryRun::class);
+    }
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -45,7 +49,7 @@ class Order extends Model
     protected function casts(): array
     {
         return [
-            'weight ' => 'decimal:2',
+            'weight' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'priority_score' => 'integer',
             'delivery_sequence' => 'integer',
