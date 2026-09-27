@@ -41,8 +41,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/staff/delivery-zones/{deliveryZone}', [DeliveryZoneController::class, 'update']);
     Route::put('/staff/addresses/{address}/zone', [DeliveryZoneController::class, 'assignAddress']);
 
+    Route::get('/staff/riders', [DeliveryRunController::class, 'riders']);
     Route::post('/staff/delivery-runs', [DeliveryRunController::class, 'store']);
     Route::post('/staff/delivery-runs/{deliveryRun}/orders', [DeliveryRunController::class, 'assignOrders']);
+
     Route::get('/staff/reports', [OrderController::class, 'reports']);
     });
 

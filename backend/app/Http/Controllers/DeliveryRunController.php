@@ -17,7 +17,17 @@ class DeliveryRunController extends Controller
             403
         );
     }
+    public function riders(Request $request)
+    {
+        $this->ensureStaffOrAdmin($request);
 
+        $riders = User::where('role', 'rider')
+            ->select('id', 'name', 'email', 'phone')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($riders);
+    }
     public function store(Request $request)
     {
         $this->ensureStaffOrAdmin($request);
