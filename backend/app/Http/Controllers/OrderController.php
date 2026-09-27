@@ -66,24 +66,31 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'address_id' => ['required', 'integer', 'exists:addresses,id'],
-            'service_type' => ['nullable', 'string', 'max:100'],
-            'weight' => ['nullable', 'numeric', 'min:0'],
-            'total_amount' => ['required', 'numeric', 'min:0'],
-            'notes' => ['nullable', 'string', 'max:500'],
-            'requested_at' => ['nullable', 'date'],
-        ]);
+        'address_id' => ['required', 'integer', 'exists:addresses,id'],
+        'service_id' => ['required', 'integer', 'exists:services,id'],
+        'notes' => ['nullable', 'string', 'max:500'],
+        'requested_at' => ['nullable', 'date'],
+    ]);
 
         $address = $request->user()
             ->addresses()
             ->findOrFail($validated['address_id']);
 
-        $order = $request->user()->orders()->create([
+            $service = \App\Models\Service::where('id', $validated['service_id'])
+                ->where('is_active', true)
+                ->firstOrFail();
+
+            $totalAmount = $service->pricing_type === 'fixed'
+                ? $service->rate
+                : 0;
+
+       $order = $request->user()->orders()->create([
             'address_id' => $address->id,
+            'service_id' => $service->id,
             'order_number' => 'WS-' . strtoupper(Str::random(8)),
-            'service_type' => $validated['service_type'] ?? 'Laundry',
-            'weight' => $validated['weight'] ?? null,
-            'total_amount' => $validated['total_amount'],
+            'service_type' => $service->name,
+            'weight' => null,
+            'total_amount' => $totalAmount,
             'status' => 'Pending',
             'notes' => $validated['notes'] ?? null,
             'requested_at' => $validated['requested_at'] ?? now(),
@@ -120,7 +127,38 @@ class OrderController extends Controller
             'order' => $order,
         ]);
     }
+    public function updateWeight(Request $request, Order $order)
+{
+    $this->ensureStaffOrAdmin($request);
 
+    $validated = $request->validate([
+        'weight' => ['required', 'numeric', 'gt:0'],
+    ]);
+
+    $order->load('service');
+
+    abort_unless(
+        $order->service,
+        422,
+        'This order does not have a configured service.'
+    );
+
+    $weight = (float) $validated['weight'];
+
+    $totalAmount = $order->service->pricing_type === 'per_kg'
+        ? $weight * (float) $order->service->rate
+        : (float) $order->service->rate;
+
+    $order->update([
+        'weight' => $weight,
+        'total_amount' => round($totalAmount, 2),
+    ]);
+
+    return response()->json([
+        'message' => 'Order weight and total amount updated successfully.',
+        'order' => $order->fresh('service'),
+    ]);
+}
     public function updatePayment(Request $request, Order $order)
 {
     $this->ensureStaffOrAdmin($request);

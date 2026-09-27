@@ -8,6 +8,7 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryRunController;
 use App\Http\Controllers\DeliveryZoneController;
+use App\Http\Controllers\ServiceController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -18,6 +19,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::get('/services', [ServiceController::class, 'index']);
+
+    Route::get('/staff/services', [ServiceController::class, 'staffIndex']);
+    Route::post('/staff/services', [ServiceController::class, 'store']);
+    Route::put('/staff/services/{service}', [ServiceController::class, 'update']);
 
     Route::get('/customer/profile', [CustomerController::class, 'profile']);
 
@@ -34,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/staff/orders', [OrderController::class, 'staffIndex']);
     Route::post('/staff/orders/schedule', [OrderController::class, 'schedule']);
+    Route::put('/staff/orders/{order}/weight', [OrderController::class, 'updateWeight']);
     Route::put('/staff/orders/{order}/payment', [OrderController::class, 'updatePayment']);
 
     Route::get('/staff/delivery-zones', [DeliveryZoneController::class, 'index']);

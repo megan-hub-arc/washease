@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'user_id',
     'address_id',
+    'service_id',
     'order_number',
     'service_type',
     'weight',
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'payment_status',
     'payment_method',
     'paid_at',
+    
 ])]
 
 class Order extends Model
@@ -36,6 +38,10 @@ class Order extends Model
         'Ready for Delivery',
         'Delivered',
     ];
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
+    }
     public function deliveryRun(): BelongsTo
     {
         return $this->belongsTo(DeliveryRun::class);
