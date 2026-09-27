@@ -55,7 +55,24 @@ export default function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
 
-  const [user, setUser] = useState<User | null>(null);
+const [user] = useState<User | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    const storedUser = localStorage.getItem("washease_user");
+
+    if (!storedUser) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(storedUser) as User;
+    } catch {
+      return null;
+    }
+  });
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -80,13 +97,12 @@ export default function AdminShell({
         return;
       }
 
-      setUser(parsedUser);
     } catch {
       localStorage.removeItem("washease_token");
       localStorage.removeItem("washease_user");
       router.replace("/");
     }
-  }, [router]);
+ }, [router]);
 
   if (!user) {
     return (
