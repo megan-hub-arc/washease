@@ -21,7 +21,7 @@ const navigation = [
   {
     label: "Overview",
     href: "/dashboard",
-    icon: "▦",
+    icon: "◦",
   },
   {
     section: "OPERATIONS",
@@ -55,24 +55,7 @@ export default function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
 
-const [user] = useState<User | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    const storedUser = localStorage.getItem("washease_user");
-
-    if (!storedUser) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(storedUser) as User;
-    } catch {
-      return null;
-    }
-  });
-
+  const [user, setUser] = useState<User | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -97,12 +80,15 @@ const [user] = useState<User | null>(() => {
         return;
       }
 
+      Promise.resolve().then(() => {
+        setUser(parsedUser);
+      });
     } catch {
       localStorage.removeItem("washease_token");
       localStorage.removeItem("washease_user");
       router.replace("/");
     }
- }, [router]);
+  }, [router]);
 
   if (!user) {
     return (
@@ -170,7 +156,7 @@ const [user] = useState<User | null>(() => {
             }`}
           >
             <span className="w-5 text-center text-[#42a5e9]">
-              ▦
+              ◦
             </span>
             Overview
           </Link>
@@ -232,6 +218,7 @@ const [user] = useState<User | null>(() => {
               <p className="text-xs font-medium text-[#17395d]">
                 {user.name}
               </p>
+
               <p className="text-[11px] capitalize text-[#8ba2b8]">
                 {user.role}
               </p>

@@ -54,6 +54,8 @@ export default function OrdersPage() {
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedOrder, setSelectedOrder] =
+    useState<Order | null>(null);
 
   useEffect(() => {
     async function loadOrders() {
@@ -125,7 +127,18 @@ export default function OrdersPage() {
       return orders.length;
     }
 
-    return orders.filter((order) => order.status === filter).length;
+    return orders.filter((order) => order.status === filter)
+      .length;
+  }
+
+  function handleOrderUpdated(updatedOrder: Order) {
+    setOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        order.id === updatedOrder.id ? updatedOrder : order
+      )
+    );
+
+    setSelectedOrder(updatedOrder);
   }
 
   return (
@@ -151,7 +164,9 @@ export default function OrdersPage() {
             <input
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
               placeholder="Search orders..."
               className="w-full rounded-xl border border-[#dbe7f3] bg-white py-2.5 pl-10 pr-4 text-sm text-[#17395d] outline-none transition focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
             />
@@ -162,7 +177,9 @@ export default function OrdersPage() {
               <button
                 key={filter}
                 type="button"
-                onClick={() => setSelectedFilter(filter)}
+                onClick={() =>
+                  setSelectedFilter(filter)
+                }
                 className={`whitespace-nowrap rounded-full border px-3 py-2 text-xs font-medium transition ${
                   selectedFilter === filter
                     ? "border-[#299cdb] bg-[#edf7ff] text-[#178fd0]"
@@ -183,18 +200,43 @@ export default function OrdersPage() {
 
         <div className="mt-5 overflow-hidden rounded-xl border border-[#dbe7f3] bg-white">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse text-left">
+            <table className="w-full min-w-[1050px] border-collapse text-left">
               <thead className="bg-[#f8fbfe]">
                 <tr className="border-b border-[#dbe7f3] text-xs font-semibold uppercase tracking-wide text-[#91a8be]">
-                  <th className="px-5 py-4">Order ID</th>
-                  <th className="px-5 py-4">Customer</th>
-                  <th className="px-5 py-4">Service</th>
-                  <th className="px-5 py-4">Weight</th>
-                  <th className="px-5 py-4">Zone</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Payment</th>
+                  <th className="px-5 py-4">
+                    Order ID
+                  </th>
+
+                  <th className="px-5 py-4">
+                    Customer
+                  </th>
+
+                  <th className="px-5 py-4">
+                    Service
+                  </th>
+
+                  <th className="px-5 py-4">
+                    Weight
+                  </th>
+
+                  <th className="px-5 py-4">
+                    Zone
+                  </th>
+
+                  <th className="px-5 py-4">
+                    Status
+                  </th>
+
+                  <th className="px-5 py-4">
+                    Payment
+                  </th>
+
                   <th className="px-5 py-4 text-right">
                     Amount
+                  </th>
+
+                  <th className="px-5 py-4 text-right">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -203,7 +245,7 @@ export default function OrdersPage() {
                 {isLoading ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-5 py-12 text-center text-sm text-[#7892ad]"
                     >
                       Loading orders...
@@ -212,7 +254,7 @@ export default function OrdersPage() {
                 ) : filteredOrders.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-5 py-12 text-center text-sm text-[#7892ad]"
                     >
                       No orders found.
@@ -220,20 +262,356 @@ export default function OrdersPage() {
                   </tr>
                 ) : (
                   filteredOrders.map((order) => (
-                    <OrderRow key={order.id} order={order} />
+                    <OrderRow
+                      key={order.id}
+                      order={order}
+                      onManage={() =>
+                        setSelectedOrder(order)
+                      }
+                    />
                   ))
                 )}
               </tbody>
             </table>
           </div>
         </div>
+
+        {selectedOrder && (
+          <OrderManagementPanel
+            key={selectedOrder.id}
+            order={selectedOrder}
+            onClose={() =>
+              setSelectedOrder(null)
+            }
+            onUpdated={handleOrderUpdated}
+          />
+        )}
       </section>
     </AdminShell>
   );
 }
 
-function OrderRow({ order }: { order: Order }) {
-  const amount = Number(order.total_amount ?? 0);
+function OrderManagementPanel({
+  order,
+  onClose,
+  onUpdated,
+}: {
+  order: Order;
+  onClose: () => void;
+  onUpdated: (order: Order) => void;
+}) {
+  const [status, setStatus] = useState(order.status);
+
+  const [weight, setWeight] = useState(
+    order.weight ? String(order.weight) : ""
+  );
+
+  const [isSavingStatus, setIsSavingStatus] =
+    useState(false);
+
+  const [isSavingWeight, setIsSavingWeight] =
+    useState(false);
+
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function updateStatus() {
+    const token =
+      localStorage.getItem("washease_token");
+
+    if (!token) {
+      setError("Authentication token not found.");
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    setIsSavingStatus(true);
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/orders/${order.id}/status`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ??
+            "Unable to update status."
+        );
+      }
+
+      onUpdated(data.order);
+
+      setMessage(
+        `Order status updated to ${data.order.status}.`
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update status."
+      );
+    } finally {
+      setIsSavingStatus(false);
+    }
+  }
+
+  async function updateWeight() {
+    const token =
+      localStorage.getItem("washease_token");
+
+    if (!token) {
+      setError("Authentication token not found.");
+      return;
+    }
+
+    const numericWeight = Number(weight);
+
+    if (
+      !Number.isFinite(numericWeight) ||
+      numericWeight <= 0
+    ) {
+      setError(
+        "Enter a valid weight greater than 0 kg."
+      );
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    setIsSavingWeight(true);
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/staff/orders/${order.id}/weight`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            weight: numericWeight,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ??
+            "Unable to update laundry weight."
+        );
+      }
+
+      onUpdated(data.order);
+
+      setWeight(String(data.order.weight ?? ""));
+
+      setMessage(
+        `Weight saved. Total amount: ₱${Number(
+          data.order.total_amount
+        ).toFixed(2)}`
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update laundry weight."
+      );
+    } finally {
+      setIsSavingWeight(false);
+    }
+  }
+
+  return (
+    <div className="mt-5 rounded-xl border border-[#dbe7f3] bg-white p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#91a8be]">
+            Manage order
+          </p>
+
+          <h3 className="mt-1 text-lg font-bold text-[#17395d]">
+            {order.order_number}
+          </h3>
+
+          <p className="mt-1 text-sm text-[#7892ad]">
+            {order.user?.name} · {order.service_type}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg border border-[#dbe7f3] px-3 py-2 text-sm text-[#567795] hover:bg-[#f7fbff]"
+        >
+          Close
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {message && (
+        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {message}
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <div>
+          <label
+            htmlFor="order-status"
+            className="mb-2 block text-sm font-medium text-[#17395d]"
+          >
+            Order status
+          </label>
+
+          <select
+            id="order-status"
+            value={status}
+            onChange={(event) =>
+              setStatus(event.target.value)
+            }
+            className="w-full rounded-xl border border-[#dbe7f3] bg-white px-4 py-3 text-sm text-[#17395d] outline-none focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+          >
+            {filters
+              .filter(
+                (filter) => filter !== "All"
+              )
+              .map((filter) => (
+                <option
+                  key={filter}
+                  value={filter}
+                >
+                  {filter}
+                </option>
+              ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={updateStatus}
+            disabled={
+              isSavingStatus ||
+              status === order.status
+            }
+            className="mt-3 rounded-xl bg-[#299cdb] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#178fd0] disabled:cursor-not-allowed disabled:bg-[#9dcde8]"
+          >
+            {isSavingStatus
+              ? "Updating..."
+              : "Update status"}
+          </button>
+        </div>
+
+        <div>
+          <label
+            htmlFor="order-weight"
+            className="mb-2 block text-sm font-medium text-[#17395d]"
+          >
+            Actual laundry weight (kg)
+          </label>
+
+          <input
+            id="order-weight"
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={weight}
+            onChange={(event) =>
+              setWeight(event.target.value)
+            }
+            placeholder="e.g. 5.60"
+            className="w-full rounded-xl border border-[#dbe7f3] bg-white px-4 py-3 text-sm text-[#17395d] outline-none focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+          />
+
+          <button
+            type="button"
+            onClick={updateWeight}
+            disabled={isSavingWeight}
+            className="mt-3 rounded-xl border border-[#299cdb] bg-white px-4 py-2.5 text-sm font-semibold text-[#178fd0] transition hover:bg-[#edf7ff] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSavingWeight
+              ? "Saving..."
+              : "Save weight & calculate"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-[#edf2f7] pt-4">
+        <div className="grid gap-3 text-sm sm:grid-cols-3">
+          <div>
+            <p className="text-xs text-[#91a8be]">
+              Current status
+            </p>
+
+            <p className="mt-1 font-semibold text-[#17395d]">
+              {order.status}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs text-[#91a8be]">
+              Current weight
+            </p>
+
+            <p className="mt-1 font-semibold text-[#17395d]">
+              {order.weight
+                ? `${order.weight} kg`
+                : "Not recorded"}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs text-[#91a8be]">
+              Current amount
+            </p>
+
+            <p className="mt-1 font-semibold text-[#17395d]">
+              ₱
+              {Number(
+                order.total_amount ?? 0
+              ).toLocaleString("en-PH", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderRow({
+  order,
+  onManage,
+}: {
+  order: Order;
+  onManage: () => void;
+}) {
+  const amount = Number(
+    order.total_amount ?? 0
+  );
 
   return (
     <tr className="border-b border-[#edf2f7] last:border-b-0 hover:bg-[#fbfdff]">
@@ -249,11 +627,14 @@ function OrderRow({ order }: { order: Order }) {
 
       <td className="px-5 py-4">
         <p className="font-medium text-[#17395d]">
-          {order.user?.name ?? "Unknown customer"}
+          {order.user?.name ??
+            "Unknown customer"}
         </p>
 
         <p className="mt-1 text-xs text-[#91a8be]">
-          {order.user?.phone ?? order.user?.email ?? "—"}
+          {order.user?.phone ??
+            order.user?.email ??
+            "—"}
         </p>
       </td>
 
@@ -262,7 +643,9 @@ function OrderRow({ order }: { order: Order }) {
       </td>
 
       <td className="px-5 py-4 text-sm text-[#567795]">
-        {order.weight ? `${order.weight} kg` : "—"}
+        {order.weight
+          ? `${order.weight} kg`
+          : "—"}
       </td>
 
       <td className="px-5 py-4 text-sm text-[#567795]">
@@ -276,7 +659,9 @@ function OrderRow({ order }: { order: Order }) {
       </td>
 
       <td className="px-5 py-4">
-        <PaymentBadge status={order.payment_status} />
+        <PaymentBadge
+          status={order.payment_status}
+        />
       </td>
 
       <td className="px-5 py-4 text-right font-semibold text-[#17395d]">
@@ -286,11 +671,25 @@ function OrderRow({ order }: { order: Order }) {
           maximumFractionDigits: 2,
         })}
       </td>
+
+      <td className="px-5 py-4 text-right">
+        <button
+          type="button"
+          onClick={onManage}
+          className="rounded-lg border border-[#cfe1f0] bg-white px-3 py-2 text-xs font-semibold text-[#178fd0] transition hover:bg-[#edf7ff]"
+        >
+          Manage
+        </button>
+      </td>
     </tr>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({
+  status,
+}: {
+  status: string;
+}) {
   const style =
     status === "Delivered"
       ? "bg-emerald-50 text-emerald-700"
@@ -313,7 +712,11 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function PaymentBadge({ status }: { status: string }) {
+function PaymentBadge({
+  status,
+}: {
+  status: string;
+}) {
   const isPaid = status === "Paid";
 
   return (
