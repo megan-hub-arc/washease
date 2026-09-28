@@ -30,6 +30,7 @@ type Order = {
   total_amount: string | number;
   payment_status: string;
   payment_method: string | null;
+  paid_at?: string | null;
   status: string;
   delivery_status: string | null;
   requested_at: string | null;
@@ -46,6 +47,12 @@ const filters = [
   "Processing",
   "Ready for Delivery",
   "Delivered",
+];
+
+const paymentMethods = [
+  "Cash",
+  "GCash",
+  "Other",
 ];
 
 export default function OrdersPage() {
@@ -127,18 +134,48 @@ export default function OrdersPage() {
       return orders.length;
     }
 
-    return orders.filter((order) => order.status === filter)
-      .length;
+    return orders.filter(
+      (order) => order.status === filter
+    ).length;
   }
 
   function handleOrderUpdated(updatedOrder: Order) {
     setOrders((currentOrders) =>
-      currentOrders.map((order) =>
-        order.id === updatedOrder.id ? updatedOrder : order
+      currentOrders.map((currentOrder) =>
+        currentOrder.id === updatedOrder.id
+          ? {
+              ...currentOrder,
+              ...updatedOrder,
+              user:
+                updatedOrder.user ??
+                currentOrder.user,
+              address:
+                updatedOrder.address ??
+                currentOrder.address,
+            }
+          : currentOrder
       )
     );
 
-    setSelectedOrder(updatedOrder);
+    setSelectedOrder((currentOrder) => {
+      if (
+        !currentOrder ||
+        currentOrder.id !== updatedOrder.id
+      ) {
+        return currentOrder;
+      }
+
+      return {
+        ...currentOrder,
+        ...updatedOrder,
+        user:
+          updatedOrder.user ??
+          currentOrder.user,
+        address:
+          updatedOrder.address ??
+          currentOrder.address,
+      };
+    });
   }
 
   return (
@@ -300,16 +337,26 @@ function OrderManagementPanel({
   onClose: () => void;
   onUpdated: (order: Order) => void;
 }) {
-  const [status, setStatus] = useState(order.status);
+  const [status, setStatus] =
+    useState(order.status);
 
   const [weight, setWeight] = useState(
     order.weight ? String(order.weight) : ""
   );
 
+  const [paymentStatus, setPaymentStatus] =
+    useState(order.payment_status);
+
+  const [paymentMethod, setPaymentMethod] =
+    useState(order.payment_method ?? "Cash");
+
   const [isSavingStatus, setIsSavingStatus] =
     useState(false);
 
   const [isSavingWeight, setIsSavingWeight] =
+    useState(false);
+
+  const [isSavingPayment, setIsSavingPayment] =
     useState(false);
 
   const [message, setMessage] = useState("");
@@ -421,7 +468,9 @@ function OrderManagementPanel({
 
       onUpdated(data.order);
 
-      setWeight(String(data.order.weight ?? ""));
+      setWeight(
+        String(data.order.weight ?? "")
+      );
 
       setMessage(
         `Weight saved. Total amount: ₱${Number(
@@ -439,6 +488,80 @@ function OrderManagementPanel({
     }
   }
 
+  async function updatePayment() {
+    const token =
+      localStorage.getItem("washease_token");
+
+    if (!token) {
+      setError("Authentication token not found.");
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    setIsSavingPayment(true);
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/staff/orders/${order.id}/payment`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            payment_status: paymentStatus,
+            payment_method:
+              paymentStatus === "Paid"
+                ? paymentMethod
+                : null,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ??
+            "Unable to update payment."
+        );
+      }
+
+      onUpdated(data.order);
+
+      setPaymentStatus(
+        data.order.payment_status
+      );
+
+      setPaymentMethod(
+        data.order.payment_method ?? "Cash"
+      );
+
+      setMessage(
+        data.order.payment_status === "Paid"
+          ? `Payment recorded as Paid via ${data.order.payment_method}.`
+          : "Payment status changed to Unpaid."
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update payment."
+      );
+    } finally {
+      setIsSavingPayment(false);
+    }
+  }
+
+  const paymentChanged =
+    paymentStatus !== order.payment_status ||
+    (paymentStatus === "Paid" &&
+      paymentMethod !==
+        (order.payment_method ?? "Cash"));
+
   return (
     <div className="mt-5 rounded-xl border border-[#dbe7f3] bg-white p-5">
       <div className="flex items-start justify-between gap-4">
@@ -452,7 +575,8 @@ function OrderManagementPanel({
           </h3>
 
           <p className="mt-1 text-sm text-[#7892ad]">
-            {order.user?.name} · {order.service_type}
+            {order.user?.name} ·{" "}
+            {order.service_type}
           </p>
         </div>
 
@@ -477,7 +601,7 @@ function OrderManagementPanel({
         </div>
       )}
 
-      <div className="mt-5 grid gap-5 md:grid-cols-2">
+      <div className="mt-5 grid gap-5 md:grid-cols-3">
         <div>
           <label
             htmlFor="order-status"
@@ -555,10 +679,84 @@ function OrderManagementPanel({
               : "Save weight & calculate"}
           </button>
         </div>
+
+        <div>
+          <label
+            htmlFor="payment-status"
+            className="mb-2 block text-sm font-medium text-[#17395d]"
+          >
+            Payment status
+          </label>
+
+          <select
+            id="payment-status"
+            value={paymentStatus}
+            onChange={(event) =>
+              setPaymentStatus(
+                event.target.value
+              )
+            }
+            className="w-full rounded-xl border border-[#dbe7f3] bg-white px-4 py-3 text-sm text-[#17395d] outline-none focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+          >
+            <option value="Unpaid">
+              Unpaid
+            </option>
+            <option value="Paid">
+              Paid
+            </option>
+          </select>
+
+          {paymentStatus === "Paid" && (
+            <>
+              <label
+                htmlFor="payment-method"
+                className="mb-2 mt-3 block text-sm font-medium text-[#17395d]"
+              >
+                Payment method
+              </label>
+
+              <select
+                id="payment-method"
+                value={paymentMethod}
+                onChange={(event) =>
+                  setPaymentMethod(
+                    event.target.value
+                  )
+                }
+                className="w-full rounded-xl border border-[#dbe7f3] bg-white px-4 py-3 text-sm text-[#17395d] outline-none focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+              >
+                {paymentMethods.map(
+                  (method) => (
+                    <option
+                      key={method}
+                      value={method}
+                    >
+                      {method}
+                    </option>
+                  )
+                )}
+              </select>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={updatePayment}
+            disabled={
+              isSavingPayment ||
+              !paymentChanged
+            }
+            className="mt-3 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-200"
+          >
+            {isSavingPayment
+              ? "Saving..."
+              : "Save payment"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 border-t border-[#edf2f7] pt-4">
-        <div className="grid gap-3 text-sm sm:grid-cols-3">
+        <div className="grid gap-3 text-sm sm:grid-cols-4">
           <div>
             <p className="text-xs text-[#91a8be]">
               Current status
@@ -594,6 +792,21 @@ function OrderManagementPanel({
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs text-[#91a8be]">
+              Payment
+            </p>
+
+            <p className="mt-1 font-semibold text-[#17395d]">
+              {order.payment_status}
+              {order.payment_status ===
+                "Paid" &&
+              order.payment_method
+                ? ` · ${order.payment_method}`
+                : ""}
             </p>
           </div>
         </div>
@@ -659,9 +872,18 @@ function OrderRow({
       </td>
 
       <td className="px-5 py-4">
-        <PaymentBadge
-          status={order.payment_status}
-        />
+        <div>
+          <PaymentBadge
+            status={order.payment_status}
+          />
+
+          {order.payment_status === "Paid" &&
+            order.payment_method && (
+              <p className="mt-1 text-xs text-[#91a8be]">
+                {order.payment_method}
+              </p>
+            )}
+        </div>
       </td>
 
       <td className="px-5 py-4 text-right font-semibold text-[#17395d]">
