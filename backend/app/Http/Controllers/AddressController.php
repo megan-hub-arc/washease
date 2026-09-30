@@ -14,6 +14,20 @@ class AddressController extends Controller
         );
     }
 
+    public function staffIndex(Request $request)
+    {
+        abort_unless(
+            in_array($request->user()->role, ['staff', 'admin']),
+            403
+        );
+
+        return response()->json(
+            Address::with(['user', 'deliveryZone'])
+                ->latest()
+                ->get()
+        );
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -38,14 +52,20 @@ class AddressController extends Controller
 
     public function show(Request $request, Address $address)
     {
-        abort_unless($address->user_id === $request->user()->id, 404);
+        abort_unless(
+            $address->user_id === $request->user()->id,
+            404
+        );
 
         return response()->json($address);
     }
 
     public function update(Request $request, Address $address)
     {
-        abort_unless($address->user_id === $request->user()->id, 404);
+        abort_unless(
+            $address->user_id === $request->user()->id,
+            404
+        );
 
         $validated = $request->validate([
             'label' => ['nullable', 'string', 'max:50'],
@@ -64,7 +84,10 @@ class AddressController extends Controller
 
     public function destroy(Request $request, Address $address)
     {
-        abort_unless($address->user_id === $request->user()->id, 404);
+        abort_unless(
+            $address->user_id === $request->user()->id,
+            404
+        );
 
         $address->delete();
 
