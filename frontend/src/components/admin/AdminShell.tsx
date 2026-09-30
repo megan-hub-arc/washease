@@ -17,6 +17,8 @@ type AdminShellProps = {
   title: string;
 };
 
+const API_URL = "http://127.0.0.1:8000/api";
+
 const navigation = [
   {
     label: "Overview",
@@ -57,6 +59,8 @@ export default function AdminShell({
 
   const [user, setUser] = useState<User | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("washease_token");
@@ -89,6 +93,34 @@ export default function AdminShell({
       router.replace("/");
     }
   }, [router]);
+
+  async function handleSignOut() {
+    const token = localStorage.getItem("washease_token");
+
+    setIsSigningOut(true);
+
+    try {
+      if (token) {
+        await fetch(`${API_URL}/logout`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+    } catch {
+      // Remove the local session even if the backend is unavailable.
+    } finally {
+      localStorage.removeItem("washease_token");
+      localStorage.removeItem("washease_user");
+
+      setAccountOpen(false);
+      setUser(null);
+
+      router.replace("/");
+    }
+  }
 
   if (!user) {
     return (
@@ -158,6 +190,7 @@ export default function AdminShell({
             <span className="w-5 text-center text-[#42a5e9]">
               ◦
             </span>
+
             Overview
           </Link>
 
@@ -191,8 +224,19 @@ export default function AdminShell({
           ))}
         </nav>
 
-        <div className="border-t border-[#dbe7f3] px-4 py-3 text-[11px] text-[#9bb0c4]">
-          v1.0.0 · WashEase
+        <div className="border-t border-[#dbe7f3] p-3">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="w-full rounded-lg border border-[#dbe7f3] px-3 py-2 text-left text-sm font-medium text-[#4f7192] transition hover:bg-[#f4f8fc] disabled:opacity-50"
+          >
+            {isSigningOut ? "Signing out..." : "Sign Out"}
+          </button>
+
+          <p className="mt-3 px-1 text-[11px] text-[#9bb0c4]">
+            v1.0.0 · WashEase
+          </p>
         </div>
       </aside>
 
@@ -213,20 +257,79 @@ export default function AdminShell({
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-xs font-medium text-[#17395d]">
-                {user.name}
-              </p>
+          <div className="relative">
+            <button
+              type="button"
+              aria-expanded={accountOpen}
+              aria-label="Open account menu"
+              onClick={() => setAccountOpen((open) => !open)}
+              className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-[#f4f8fc]"
+            >
+              <div className="hidden text-right sm:block">
+                <p className="text-xs font-medium text-[#17395d]">
+                  {user.name}
+                </p>
 
-              <p className="text-[11px] capitalize text-[#8ba2b8]">
-                {user.role}
-              </p>
-            </div>
+                <p className="text-[11px] capitalize text-[#8ba2b8]">
+                  {user.role}
+                </p>
+              </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#173f66] text-xs font-bold text-white">
-              {initials}
-            </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#173f66] text-xs font-bold text-white">
+                {initials}
+              </div>
+
+              <span className="text-xs text-[#7892ad]">
+                {accountOpen ? "▲" : "▼"}
+              </span>
+            </button>
+
+            {accountOpen && (
+              <div className="absolute right-0 mt-2 w-72 overflow-hidden rounded-xl border border-[#dbe7f3] bg-white shadow-lg">
+                <div className="border-b border-[#e3edf6] p-4">
+                  <p className="font-semibold text-[#17395d]">
+                    {user.name}
+                  </p>
+
+                  <p className="mt-1 text-xs text-[#7892ad]">
+                    {user.email}
+                  </p>
+                </div>
+
+                <div className="space-y-3 p-4 text-sm">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-[#9bb0c4]">
+                      Phone
+                    </p>
+
+                    <p className="mt-1 text-[#4f7192]">
+                      {user.phone ?? "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-[#9bb0c4]">
+                      Role
+                    </p>
+
+                    <p className="mt-1 capitalize text-[#4f7192]">
+                      {user.role}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-[#e3edf6] p-3">
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut}
+                    className="w-full rounded-lg bg-[#173f66] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    {isSigningOut ? "Signing out..." : "Sign Out"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
