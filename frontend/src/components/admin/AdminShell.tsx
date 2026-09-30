@@ -71,27 +71,91 @@ export default function AdminShell({
       return;
     }
 
+    let parsedUser: User;
+
     try {
-      const parsedUser = JSON.parse(storedUser) as User;
-
-      if (
-        parsedUser.role !== "admin" &&
-        parsedUser.role !== "staff"
-      ) {
-        localStorage.removeItem("washease_token");
-        localStorage.removeItem("washease_user");
-        router.replace("/");
-        return;
-      }
-
-      Promise.resolve().then(() => {
-        setUser(parsedUser);
-      });
+      parsedUser = JSON.parse(storedUser) as User;
     } catch {
       localStorage.removeItem("washease_token");
       localStorage.removeItem("washease_user");
       router.replace("/");
+      return;
     }
+
+    if (parsedUser.role === "customer") {
+      router.replace("/customer");
+      return;
+    }
+
+    if (
+      parsedUser.role !== "admin" &&
+      parsedUser.role !== "staff"
+    ) {
+      localStorage.removeItem("washease_token");
+      localStorage.removeItem("washease_user");
+      router.replace("/");
+      return;
+    }
+
+    async function validateSession() {
+      try {
+        const response = await fetch(`${API_URL}/user`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("washease_token");
+          localStorage.removeItem("washease_user");
+          router.replace("/");
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            "Unable to validate staff session."
+          );
+        }
+
+        const authenticatedUser =
+          (await response.json()) as User;
+
+        if (authenticatedUser.role === "customer") {
+          localStorage.setItem(
+            "washease_user",
+            JSON.stringify(authenticatedUser)
+          );
+
+          router.replace("/customer");
+          return;
+        }
+
+        if (
+          authenticatedUser.role !== "admin" &&
+          authenticatedUser.role !== "staff"
+        ) {
+          localStorage.removeItem("washease_token");
+          localStorage.removeItem("washease_user");
+          router.replace("/");
+          return;
+        }
+
+        localStorage.setItem(
+          "washease_user",
+          JSON.stringify(authenticatedUser)
+        );
+
+        setUser(authenticatedUser);
+      } catch {
+        localStorage.removeItem("washease_token");
+        localStorage.removeItem("washease_user");
+        router.replace("/");
+      }
+    }
+
+    validateSession();
   }, [router]);
 
   async function handleSignOut() {
@@ -156,7 +220,9 @@ export default function AdminShell({
 
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-[220px] flex-col border-r border-[#dbe7f3] bg-white transition-transform duration-200 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
         }`}
       >
         <div className="border-b border-[#dbe7f3] px-5 py-6">
@@ -167,7 +233,9 @@ export default function AdminShell({
 
             <div>
               <p className="text-sm font-bold text-[#12385c]">
-                {user.role === "admin" ? "admin" : user.name}
+                {user.role === "admin"
+                  ? "admin"
+                  : user.name}
               </p>
 
               <p className="mt-1 text-xs text-[#7892ad]">
@@ -195,7 +263,10 @@ export default function AdminShell({
           </Link>
 
           {navigation.slice(1).map((group) => (
-            <div key={group.section} className="mb-5">
+            <div
+              key={group.section}
+              className="mb-5"
+            >
               <p className="mb-2 px-2 text-[10px] font-bold tracking-[0.08em] text-[#9bb0c4]">
                 {group.section}
               </p>
@@ -205,7 +276,9 @@ export default function AdminShell({
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={() =>
+                      setSidebarOpen(false)
+                    }
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
                       isActive(item.href)
                         ? "bg-[#e7f2ff] font-medium text-[#123f67]"
@@ -231,7 +304,9 @@ export default function AdminShell({
             disabled={isSigningOut}
             className="w-full rounded-lg border border-[#dbe7f3] px-3 py-2 text-left text-sm font-medium text-[#4f7192] transition hover:bg-[#f4f8fc] disabled:opacity-50"
           >
-            {isSigningOut ? "Signing out..." : "Sign Out"}
+            {isSigningOut
+              ? "Signing out..."
+              : "Sign Out"}
           </button>
 
           <p className="mt-3 px-1 text-[11px] text-[#9bb0c4]">
@@ -246,7 +321,9 @@ export default function AdminShell({
             <button
               type="button"
               aria-label="Toggle navigation"
-              onClick={() => setSidebarOpen((open) => !open)}
+              onClick={() =>
+                setSidebarOpen((open) => !open)
+              }
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#dbe7f3] bg-[#f4f8fc] text-xl text-[#173f66]"
             >
               ☰
@@ -262,7 +339,9 @@ export default function AdminShell({
               type="button"
               aria-expanded={accountOpen}
               aria-label="Open account menu"
-              onClick={() => setAccountOpen((open) => !open)}
+              onClick={() =>
+                setAccountOpen((open) => !open)
+              }
               className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-[#f4f8fc]"
             >
               <div className="hidden text-right sm:block">
@@ -303,7 +382,8 @@ export default function AdminShell({
                     </p>
 
                     <p className="mt-1 text-[#4f7192]">
-                      {user.phone ?? "Not provided"}
+                      {user.phone ??
+                        "Not provided"}
                     </p>
                   </div>
 
@@ -325,7 +405,9 @@ export default function AdminShell({
                     disabled={isSigningOut}
                     className="w-full rounded-lg bg-[#173f66] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    {isSigningOut ? "Signing out..." : "Sign Out"}
+                    {isSigningOut
+                      ? "Signing out..."
+                      : "Sign Out"}
                   </button>
                 </div>
               </div>
