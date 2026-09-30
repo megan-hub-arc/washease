@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/staff/services/{service}', [ServiceController::class, 'update']);
 
     Route::get('/customer/profile', [CustomerController::class, 'profile']);
+    Route::get('/staff/customers', [CustomerController::class, 'staffIndex']);
 
     Route::get('/addresses', [AddressController::class, 'index']);
     Route::post('/addresses', [AddressController::class, 'store']);
