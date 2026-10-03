@@ -31,6 +31,15 @@ return [
 
     'connections' => [
 
+        'order-mail' => [
+            'driver' => 'database',
+            'connection' => null,
+            'table' => 'jobs',
+            'queue' => 'order-emails',
+            'retry_after' => 90,
+            'after_commit' => false,
+        ],
+
         'sync' => [
             'driver' => 'sync',
         ],
@@ -84,6 +93,7 @@ return [
         'failover' => [
             'driver' => 'failover',
             'connections' => [
+
                 'database',
                 'deferred',
             ],

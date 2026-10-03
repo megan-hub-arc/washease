@@ -31,6 +31,8 @@ class OrderUpdate extends Notification
             'order_number' => $this->order->order_number,
             'event' => $this->event,
             'message' => $message,
+            'pickup_requested_at' => $this->order->pickup_requested_at?->toIso8601String(),
+            'delivery_requested_at' => $this->order->delivery_requested_at?->toIso8601String(),
         ];
     }
 }

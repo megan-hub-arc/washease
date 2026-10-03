@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Order;
-use App\Notifications\OrderUpdate;
+use App\Services\CustomerOrderUpdates;
 
 class OrderObserver
 {
@@ -27,9 +27,6 @@ class OrderObserver
 
     private function notify(Order $order, string $event): void
     {
-        if ($order->user?->role === 'customer') {
-            // The database notification participates in the same transaction as the order.
-            $order->user->notify(new OrderUpdate($order, $event));
-        }
+        CustomerOrderUpdates::send($order, $event);
     }
 }

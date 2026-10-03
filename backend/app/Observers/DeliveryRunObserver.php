@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use App\Models\DeliveryRun;
-use App\Notifications\OrderUpdate;
+use App\Services\CustomerOrderUpdates;
 
 class DeliveryRunObserver
 {
@@ -11,9 +11,7 @@ class DeliveryRunObserver
     {
         if ($run->wasChanged('status') && $run->status === 'Started') {
             foreach ($run->orders()->with('user')->get() as $order) {
-                if ($order->user?->role === 'customer') {
-                    $order->user->notify(new OrderUpdate($order, 'departed'));
-                }
+                CustomerOrderUpdates::send($order, 'departed');
             }
         }
     }

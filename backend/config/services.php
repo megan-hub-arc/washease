@@ -2,6 +2,11 @@
 
 return [
 
+    'order_updates' => [
+        'email_enabled' => env('ORDER_EMAIL_ENABLED', false),
+        'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
