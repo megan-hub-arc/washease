@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { connectCustomerLive } from "@/lib/customer-live";
 import { API_URL } from "@/lib/api";
 import { requestedTimeLabel } from "@/lib/requested-times";
 
@@ -9,6 +10,7 @@ type Notice = { id: string; read_at: string | null; created_at: string; data: { 
 
 export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUpdated: (orders: T[]) => void }) {
   const router = useRouter();
+  const [liveConnected, setLiveConnected] = useState(false);
   const [notifications, setNotifications] = useState<Notice[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -23,10 +25,12 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUp
   useEffect(() => {
     let disposed = false;
     let inFlight = false;
+    let syncPending = false;
     let controller: AbortController | null = null;
     let stopped = false;
     async function sync() {
-      if (inFlight || disposed || stopped || document.visibilityState !== "visible") return;
+      if (disposed || stopped || document.visibilityState !== "visible") return;
+      if (inFlight) { syncPending = true; return; }
       const token = localStorage.getItem("washease_token");
       if (!token) { stopped = true; router.replace("/"); return; }
       inFlight = true;
@@ -55,15 +59,22 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUp
         window.clearTimeout(timeout);
         inFlight = false;
         if (!disposed) setLoading(false);
+        if (syncPending && !disposed) { syncPending = false; void sync(); }
       }
     }
     const visible = () => { if (document.visibilityState === "visible") void sync(); };
     const online = () => { void sync(); };
     void sync();
+    let disconnectLive = () => {};
+    try {
+      disconnectLive = connectCustomerLive(() => { void sync(); }, connected => {
+        if (!disposed) setLiveConnected(connected);
+      });
+    } catch { /* The periodic checks remain available if live setup fails. */ }
     const interval = window.setInterval(() => { void sync(); }, 15000);
     document.addEventListener("visibilitychange", visible);
     window.addEventListener("online", online);
-    return () => { disposed = true; controller?.abort(); window.clearInterval(interval); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online); };
+    return () => { disposed = true; disconnectLive(); controller?.abort(); window.clearInterval(interval); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online); };
   }, [onOrdersUpdated, page, revision, router]);
 
   async function markRead(id: string) {
@@ -85,7 +96,7 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUp
 
   return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h3 className="text-lg font-semibold text-slate-900">Order updates <span className="text-sm font-normal text-slate-600">{unreadCount} unread</span></h3><p className="mt-1 text-xs text-slate-600">Orders and updates refresh every 15 seconds while this page is visible.{lastSynced ? ` Last checked: ${lastSynced} PHT.` : " Checking for updates…"}</p></div>
+      <div><h3 className="text-lg font-semibold text-slate-900">Order updates <span className="text-sm font-normal text-slate-600">{unreadCount} unread</span></h3><p className="mt-1 text-xs text-slate-600">{liveConnected ? "Live updates connected. We also check every 15 seconds." : "Automatic checks every 15 seconds while this page is visible."}{lastSynced ? ` Last checked: ${lastSynced} PHT.` : " Checking for updates…"}</p></div>
       <button type="button" disabled={loading} onClick={() => { setLoading(true); setRevision(value => value + 1); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-blue-600">Check now</button>
     </div>
     {error && <p role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{error} We retry every 15 seconds.</p>}

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomerBroadcastController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\DeliveryRunController;
@@ -75,3 +76,5 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
 });
+
+Route::post('/customer/broadcasting/auth', CustomerBroadcastController::class)->middleware('auth:sanctum');

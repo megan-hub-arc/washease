@@ -23,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        require base_path('routes/channels.php');
         Order::observe(OrderObserver::class);
         DeliveryRun::observe(DeliveryRunObserver::class);
     }

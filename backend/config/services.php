@@ -3,6 +3,7 @@
 return [
 
     'order_updates' => [
+        'live_enabled' => env('ORDER_LIVE_ENABLED', false),
         'email_enabled' => env('ORDER_EMAIL_ENABLED', false),
         'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
     ],
