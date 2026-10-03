@@ -188,24 +188,27 @@ class OrderController extends Controller
             'payment_method' => ['required_if:payment_status,Paid', 'nullable', 'string', 'in:Cash,GCash'],
         ]);
 
-        if ($validated['payment_status'] === 'Paid') {
-            $order->update([
-                'payment_status' => 'Paid',
-                'payment_method' => $validated['payment_method'] ?? 'Cash',
-                'paid_at' => $order->paid_at ?? now(),
-            ]);
-        } else {
-            $order->update([
-                'payment_status' => 'Unpaid',
-                'payment_method' => null,
-                'paid_at' => null,
-            ]);
-        }
+        return DB::transaction(function () use ($order, $validated) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($validated['payment_status'] === 'Paid') {
+                $order->update([
+                    'payment_status' => 'Paid',
+                    'payment_method' => $validated['payment_method'] ?? 'Cash',
+                    'paid_at' => $order->paid_at ?? now(),
+                ]);
+            } else {
+                $order->update([
+                    'payment_status' => 'Unpaid',
+                    'payment_method' => null,
+                    'paid_at' => null,
+                ]);
+            }
 
-        return response()->json([
-            'message' => 'Payment status updated successfully.',
-            'order' => $order->fresh(),
-        ]);
+            return response()->json([
+                'message' => 'Payment status updated successfully.',
+                'order' => $order->fresh(),
+            ]);
+        });
     }
 
     public function reports(Request $request)

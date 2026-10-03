@@ -3,6 +3,7 @@
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\DeliveryRunController;
 use App\Http\Controllers\DeliveryZoneController;
 use App\Http\Controllers\OrderController;
@@ -26,6 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/staff/services', [ServiceController::class, 'store']);
     Route::put('/staff/services/{service}', [ServiceController::class, 'update']);
 
+    Route::get('/customer/notifications', [CustomerNotificationController::class, 'index']);
+    Route::put('/customer/notifications/{notification}/read', [CustomerNotificationController::class, 'read']);
     Route::put('/customer/profile', [CustomerController::class, 'updateProfile']);
     Route::get('/customer/profile', [CustomerController::class, 'profile']);
     Route::post('/staff/customers', [CustomerController::class, 'staffStore']);

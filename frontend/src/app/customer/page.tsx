@@ -1,5 +1,6 @@
 "use client";
 
+import CustomerLiveUpdates from "@/components/CustomerLiveUpdates";
 import CustomerAccount from "@/components/CustomerAccount";
 import RequestedTimeFields from "@/components/RequestedTimeFields";
 import { requestTimestamp, requestedTimeLabel } from "@/lib/requested-times";
@@ -196,6 +197,12 @@ export default function CustomerPage() {
     loadCustomerData();
   }, [router]);
 
+  useEffect(() => {
+    const showOrder = () => setOrderFilter("All");
+    window.addEventListener("washease:show-customer-order", showOrder);
+    return () => window.removeEventListener("washease:show-customer-order", showOrder);
+  }, []);
+
   async function handleBooking(
     event: FormEvent<HTMLFormElement>
   ) {
@@ -363,6 +370,8 @@ export default function CustomerPage() {
             {success}
           </div>
         )}
+
+        {user && <CustomerLiveUpdates onOrdersUpdated={setOrders} />}
 
         {user && <CustomerAccount user={user} addresses={addresses} onProfileSaved={setUser} onAddressesSaved={(updated) => {
           setAddresses(updated);
@@ -587,7 +596,7 @@ export default function CustomerPage() {
             Track your orders
           </h3>
 
-          <div className="mt-4 flex flex-wrap gap-2">{["Active", "Completed", "All"].map(value => <button type="button" key={value} aria-pressed={orderFilter === value} onClick={() => setOrderFilter(value)} className={`rounded-lg border px-4 py-2 text-sm ${orderFilter === value ? "bg-slate-900 text-white" : "bg-white"}`}>{value}</button>)}<button type="button" disabled={refreshingOrders} onClick={refreshOrders} className="rounded-lg border px-4 py-2 text-sm">{refreshingOrders ? "Refreshing..." : "Refresh status"}</button></div><p className="mt-2 text-xs text-slate-600">Status reflects information reported by staff. Refresh for updates.{lastRefreshed ? ` Last refreshed at ${lastRefreshed}.` : ""}</p>
+          <div className="mt-4 flex flex-wrap gap-2">{["Active", "Completed", "All"].map(value => <button type="button" key={value} aria-pressed={orderFilter === value} onClick={() => setOrderFilter(value)} className={`rounded-lg border px-4 py-2 text-sm ${orderFilter === value ? "bg-slate-900 text-white" : "bg-white"}`}>{value}</button>)}<button type="button" disabled={refreshingOrders} onClick={refreshOrders} className="rounded-lg border px-4 py-2 text-sm">{refreshingOrders ? "Refreshing..." : "Refresh status"}</button></div><p className="mt-2 text-xs text-slate-600">Status reflects information reported by staff. Updates are checked automatically every 15 seconds while this page is visible.{lastRefreshed ? ` Last refreshed at ${lastRefreshed}.` : ""}</p>
           {orders.filter(order => orderFilter === "All" || (orderFilter === "Completed" ? order.status === "Delivered" : order.status !== "Delivered")).length === 0 ? (
             <p className="mt-4 text-sm text-slate-500">
               No orders in this view. Choose All to see your full history.
@@ -597,7 +606,9 @@ export default function CustomerPage() {
               {orders.filter(order => orderFilter === "All" || (orderFilter === "Completed" ? order.status === "Delivered" : order.status !== "Delivered")).map((order) => (
                 <div
                   key={order.id}
-                  className="space-y-4 rounded-xl border border-slate-200 p-4"
+                  id={`customer-order-${order.id}`}
+                  tabIndex={-1}
+                  className="scroll-mt-24 focus:outline-2 focus:outline-blue-600 space-y-4 rounded-xl border border-slate-200 p-4"
                 >
                   <div>
                     <p className="font-semibold text-slate-900">
