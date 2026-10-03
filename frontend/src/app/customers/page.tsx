@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -33,8 +34,6 @@ type Customer = {
   addresses: Address[];
   orders: Order[];
 };
-
-const API_URL = "http://127.0.0.1:8000/api";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);

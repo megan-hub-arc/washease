@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -34,8 +35,6 @@ type ZoneForm = {
   priority_order: string;
   is_active: boolean;
 };
-
-const API_URL = "http://127.0.0.1:8000/api";
 
 export default function ZonesPage() {
   const [zones, setZones] = useState<DeliveryZone[]>([]);

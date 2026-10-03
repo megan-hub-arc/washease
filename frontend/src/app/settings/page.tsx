@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { FormEvent, useEffect, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -17,8 +18,6 @@ type ServiceForm = {
   rate: string;
   is_active: boolean;
 };
-
-const API_URL = "http://127.0.0.1:8000/api";
 
 export default function SettingsPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -114,8 +113,8 @@ export default function SettingsPage() {
       return;
     }
 
-    if (Number.isNaN(rate) || rate < 0) {
-      setError("Rate must be zero or greater.");
+    if (!form.rate.trim() || !Number.isFinite(rate) || rate < 0) {
+      setError("Enter a valid rate of zero or greater.");
       return;
     }
 

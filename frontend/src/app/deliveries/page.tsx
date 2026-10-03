@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -74,13 +75,13 @@ export default function DeliveriesPage() {
 
       try {
        const [ordersResponse, ridersResponse] = await Promise.all([
-  fetch("http://127.0.0.1:8000/api/staff/orders", {
+  fetch(`${API_URL}/staff/orders`, {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
     },
   }),
-  fetch("http://127.0.0.1:8000/api/staff/riders", {
+  fetch(`${API_URL}/staff/riders`, {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -201,7 +202,7 @@ setRiders(riderList);
 
   try {
     const runResponse = await fetch(
-      "http://127.0.0.1:8000/api/staff/delivery-runs",
+      `${API_URL}/staff/delivery-runs`,
       {
         method: "POST",
         headers: {
@@ -230,7 +231,7 @@ setRiders(riderList);
     const deliveryRunId = runData.delivery_run.id;
 
     const assignResponse = await fetch(
-      `http://127.0.0.1:8000/api/staff/delivery-runs/${deliveryRunId}/orders`,
+      `${API_URL}/staff/delivery-runs/${deliveryRunId}/orders`,
       {
         method: "POST",
         headers: {

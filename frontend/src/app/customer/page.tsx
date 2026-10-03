@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -39,8 +40,6 @@ type Order = {
   delivery_status: string;
   requested_at: string | null;
 };
-
-const API_URL = "http://127.0.0.1:8000/api";
 
 export default function CustomerPage() {
   const router = useRouter();

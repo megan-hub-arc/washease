@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -76,7 +77,7 @@ export default function OrdersPage() {
 
       try {
         const response = await fetch(
-          "http://127.0.0.1:8000/api/staff/orders",
+          `${API_URL}/staff/orders`,
           {
             headers: {
               Accept: "application/json",
@@ -377,7 +378,7 @@ function OrderManagementPanel({
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/orders/${order.id}/status`,
+        `${API_URL}/orders/${order.id}/status`,
         {
           method: "PUT",
           headers: {
@@ -443,7 +444,7 @@ function OrderManagementPanel({
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/staff/orders/${order.id}/weight`,
+        `${API_URL}/staff/orders/${order.id}/weight`,
         {
           method: "PUT",
           headers: {
@@ -503,7 +504,7 @@ function OrderManagementPanel({
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/staff/orders/${order.id}/payment`,
+        `${API_URL}/staff/orders/${order.id}/payment`,
         {
           method: "PUT",
           headers: {

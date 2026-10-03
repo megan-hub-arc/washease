@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
@@ -17,7 +18,6 @@ type AdminShellProps = {
   title: string;
 };
 
-const API_URL = "http://127.0.0.1:8000/api";
 
 const navigation = [
   {

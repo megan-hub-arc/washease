@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -19,8 +20,6 @@ type Order = {
   paid_at: string | null;
   user: Customer | null;
 };
-
-const API_URL = "http://127.0.0.1:8000/api";
 
 export default function PaymentsPage() {
   const [orders, setOrders] = useState<Order[]>([]);

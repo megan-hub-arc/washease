@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -30,7 +31,7 @@ export default function DashboardPage() {
 
       try {
         const response = await fetch(
-          "http://127.0.0.1:8000/api/staff/reports",
+          `${API_URL}/staff/reports`,
           {
             headers: {
               Accept: "application/json",
