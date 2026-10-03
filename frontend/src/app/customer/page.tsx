@@ -1,5 +1,8 @@
 "use client";
 
+import CustomerAccount from "@/components/CustomerAccount";
+import RequestedTimeFields from "@/components/RequestedTimeFields";
+import { requestTimestamp, requestedTimeLabel } from "@/lib/requested-times";
 import { API_URL } from "@/lib/api";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -7,7 +10,7 @@ import { useRouter } from "next/navigation";
 type User = {
   id: number;
   name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   role: string;
 };
@@ -37,8 +40,13 @@ type Order = {
   total_amount: string;
   status: string;
   payment_status: string;
+  payment_preference: string | null;
+  payment_method: string | null;
+  delivery_run?: { status: string; rider: { name: string; phone: string | null } } | null;
   delivery_status: string;
   requested_at: string | null;
+  pickup_requested_at: string | null;
+  delivery_requested_at: string | null;
 };
 
 export default function CustomerPage() {
@@ -47,6 +55,9 @@ export default function CustomerPage() {
   const [user, setUser] = useState<User | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [orderFilter, setOrderFilter] = useState("Active");
+  const [refreshingOrders, setRefreshingOrders] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
 
   const [error, setError] = useState("");
@@ -56,6 +67,8 @@ export default function CustomerPage() {
 
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [paymentPreference, setPaymentPreference] = useState("Cash");
+  const [requestedTimes, setRequestedTimes] = useState({ pickup: "", delivery: "" });
   const [bookingNotes, setBookingNotes] = useState("");
 
   useEffect(() => {
@@ -216,7 +229,10 @@ export default function CustomerPage() {
         body: JSON.stringify({
           address_id: Number(selectedAddressId),
           service_id: Number(selectedServiceId),
+          payment_preference: paymentPreference,
           notes: bookingNotes.trim() || null,
+          pickup_requested_at: requestTimestamp(requestedTimes.pickup),
+          delivery_requested_at: requestTimestamp(requestedTimes.delivery),
         }),
       });
 
@@ -231,7 +247,7 @@ export default function CustomerPage() {
 
       if (!response.ok) {
         throw new Error(
-          data?.message ?? "Unable to create booking."
+          data.errors ? Object.values(data.errors).flat().join(" ") : data?.message ?? "Unable to create booking."
         );
       }
 
@@ -243,6 +259,7 @@ export default function CustomerPage() {
       setSelectedAddressId("");
       setSelectedServiceId("");
       setBookingNotes("");
+      setRequestedTimes({ pickup: "", delivery: "" });
 
       setSuccess(
         `Booking ${data.order.order_number} was created successfully.`
@@ -278,6 +295,16 @@ export default function CustomerPage() {
       localStorage.removeItem("washease_user");
       router.replace("/");
     }
+  }
+
+  async function refreshOrders() {
+    setRefreshingOrders(true); setError("");
+    try {
+      const response = await fetch(`${API_URL}/orders`, { headers: { Accept: "application/json", Authorization: `Bearer ${localStorage.getItem("washease_token")}` } });
+      if (response.status === 401) { localStorage.removeItem("washease_token"); localStorage.removeItem("washease_user"); router.replace("/"); return; }
+      if (!response.ok) throw new Error("Unable to refresh orders. Existing information is still shown; try again.");
+      setOrders(await response.json()); setLastRefreshed(new Date().toLocaleTimeString("en-PH"));
+    } catch (e) { setError(e instanceof Error ? e.message : "Unable to refresh orders."); } finally { setRefreshingOrders(false); }
   }
 
   if (isLoading) {
@@ -336,6 +363,11 @@ export default function CustomerPage() {
             {success}
           </div>
         )}
+
+        {user && <CustomerAccount user={user} addresses={addresses} onProfileSaved={setUser} onAddressesSaved={(updated) => {
+          setAddresses(updated);
+          if (!updated.some(address => String(address.id) === selectedAddressId)) setSelectedAddressId("");
+        }} />}
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -460,12 +492,19 @@ export default function CustomerPage() {
               </div>
             </div>
 
+            <label className="block text-sm font-medium text-slate-700">Payment on delivery
+              <select value={paymentPreference} onChange={event => setPaymentPreference(event.target.value)} disabled={isBooking} className="mt-2 w-full rounded-xl border border-slate-300 p-3">
+                <option value="Cash">Cash</option><option value="GCash">GCash</option>
+              </select>
+              <span className="mt-1 block text-xs text-slate-500">Pay the rider outside WashEase. This preference stays fixed after booking; staff confirms the actual method collected.</span>
+            </label>
+            <RequestedTimeFields value={requestedTimes} onChange={setRequestedTimes} disabled={isBooking} />
             <div>
               <label
                 htmlFor="booking-notes"
                 className="mb-2 block text-sm font-medium text-slate-700"
               >
-                Pickup notes
+                Laundry / pickup instructions
               </label>
 
               <textarea
@@ -545,19 +584,20 @@ export default function CustomerPage() {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-slate-900">
-            Recent orders
+            Track your orders
           </h3>
 
-          {orders.length === 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2">{["Active", "Completed", "All"].map(value => <button type="button" key={value} aria-pressed={orderFilter === value} onClick={() => setOrderFilter(value)} className={`rounded-lg border px-4 py-2 text-sm ${orderFilter === value ? "bg-slate-900 text-white" : "bg-white"}`}>{value}</button>)}<button type="button" disabled={refreshingOrders} onClick={refreshOrders} className="rounded-lg border px-4 py-2 text-sm">{refreshingOrders ? "Refreshing..." : "Refresh status"}</button></div><p className="mt-2 text-xs text-slate-600">Status reflects information reported by staff. Refresh for updates.{lastRefreshed ? ` Last refreshed at ${lastRefreshed}.` : ""}</p>
+          {orders.filter(order => orderFilter === "All" || (orderFilter === "Completed" ? order.status === "Delivered" : order.status !== "Delivered")).length === 0 ? (
             <p className="mt-4 text-sm text-slate-500">
-              You have not placed any orders yet.
+              No orders in this view. Choose All to see your full history.
             </p>
           ) : (
             <div className="mt-4 space-y-3">
-              {orders.map((order) => (
+              {orders.filter(order => orderFilter === "All" || (orderFilter === "Completed" ? order.status === "Delivered" : order.status !== "Delivered")).map((order) => (
                 <div
                   key={order.id}
-                  className="flex flex-col justify-between gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center"
+                  className="space-y-4 rounded-xl border border-slate-200 p-4"
                 >
                   <div>
                     <p className="font-semibold text-slate-900">
@@ -567,11 +607,15 @@ export default function CustomerPage() {
                     <p className="text-sm text-slate-500">
                       {order.service_type}
                     </p>
+                    <p className="text-xs text-slate-500">Payment preference: {order.payment_preference || "Not recorded"} · {order.payment_status}{order.payment_method ? ` via ${order.payment_method}` : ""}</p>
+                    <p className="text-xs text-slate-600">Requested pickup: {requestedTimeLabel(order.pickup_requested_at)}<br />Requested delivery: {requestedTimeLabel(order.delivery_requested_at)}</p>
+                    {order.delivery_run && <p className="text-xs text-slate-500">Rider: {order.delivery_run.rider.name} · {order.delivery_run.rider.phone || "Contact the shop"}</p>}
                   </div>
 
-                  <div className="sm:text-right">
+                  <ol aria-label="Order progress" className="flex flex-wrap gap-2">{["Pending", "Confirmed", "Picked Up", "Processing", "Ready for Delivery", "Delivered"].map((stage, index, stages) => <li key={stage} aria-current={stage === order.status ? "step" : undefined} className={`rounded-lg px-3 py-2 text-xs ${stage === order.status ? "bg-blue-700 font-semibold text-white" : index < stages.indexOf(order.status) ? "bg-emerald-50 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>{stage === order.status ? "Current: " : ""}{stage}</li>)}</ol>
+                  <div>
                     <p className="text-sm font-medium text-slate-700">
-                      {order.status}
+                      {order.delivery_run?.status === "Started" && order.status !== "Delivered" ? "Out on delivery" : order.status}
                     </p>
 
                     <p className="text-sm text-slate-500">
@@ -579,7 +623,7 @@ export default function CustomerPage() {
                         ? `${order.weight} kg · ₱${Number(
                             order.total_amount
                           ).toFixed(2)}`
-                        : "Awaiting laundry weight"}
+                        : Number(order.total_amount) > 0 ? `₱${Number(order.total_amount).toFixed(2)}` : "Final price pending weighing"}
                     </p>
                   </div>
                 </div>

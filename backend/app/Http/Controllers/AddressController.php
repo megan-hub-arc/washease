@@ -3,14 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Address;
+use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AddressController extends Controller
 {
     public function index(Request $request)
     {
         return response()->json(
-            $request->user()->addresses()->latest()->get()
+            $request->user()->addresses()->whereNull('archived_at')->latest()->get()
         );
     }
 
@@ -23,6 +25,8 @@ class AddressController extends Controller
 
         return response()->json(
             Address::with(['user', 'deliveryZone'])
+                ->where(fn ($query) => $query->whereNull('archived_at')
+                    ->orWhereHas('orders', fn ($orders) => $orders->where('status', '!=', 'Delivered')))
                 ->latest()
                 ->get()
         );
@@ -53,7 +57,7 @@ class AddressController extends Controller
     public function show(Request $request, Address $address)
     {
         abort_unless(
-            $address->user_id === $request->user()->id,
+            $address->user_id === $request->user()->id && $address->archived_at === null,
             404
         );
 
@@ -63,7 +67,7 @@ class AddressController extends Controller
     public function update(Request $request, Address $address)
     {
         abort_unless(
-            $address->user_id === $request->user()->id,
+            $address->user_id === $request->user()->id && $address->archived_at === null,
             404
         );
 
@@ -74,7 +78,26 @@ class AddressController extends Controller
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $address->update($validated);
+        $address = DB::transaction(function () use ($address, $validated) {
+            $current = Address::whereKey($address->id)->lockForUpdate()->firstOrFail();
+            abort_unless($current->archived_at === null, 404);
+            $locationChanged = $current->address !== $validated['address']
+                || $current->zone !== ($validated['zone'] ?? null);
+            $values = array_merge($validated, [
+                'user_id' => $current->user_id,
+                'delivery_zone_id' => $locationChanged ? null : $current->delivery_zone_id,
+            ]);
+            // Keep the original address and assigned zone for every existing booking.
+            if (Order::where('address_id', $current->id)->exists()) {
+                $replacement = Address::create($values);
+                $current->update(['archived_at' => now()]);
+
+                return $replacement;
+            }
+            $current->update($values);
+
+            return $current;
+        });
 
         return response()->json([
             'message' => 'Address updated successfully.',
@@ -85,11 +108,19 @@ class AddressController extends Controller
     public function destroy(Request $request, Address $address)
     {
         abort_unless(
-            $address->user_id === $request->user()->id,
+            $address->user_id === $request->user()->id && $address->archived_at === null,
             404
         );
 
-        $address->delete();
+        DB::transaction(function () use ($address) {
+            $current = Address::whereKey($address->id)->lockForUpdate()->firstOrFail();
+            abort_unless($current->archived_at === null, 404);
+            if (Order::where('address_id', $current->id)->exists()) {
+                $current->update(['archived_at' => now()]);
+            } else {
+                $current->delete();
+            }
+        });
 
         return response()->json([
             'message' => 'Address deleted successfully.',

@@ -10,7 +10,7 @@ type LoginResponse = {
   user: {
     id: number;
     name: string;
-    email: string;
+    email: string | null;
     phone: string | null;
     role: string;
   };
@@ -40,7 +40,7 @@ export default function Home() {
             Accept: "application/json",
           },
           body: JSON.stringify({
-            email,
+            login: email,
             password,
           }),
         }
@@ -50,7 +50,7 @@ export default function Home() {
 
       if (!response.ok) {
         throw new Error(
-          data?.message ?? "Email or password is incorrect."
+          data?.message ?? "Email, phone or password is incorrect."
         );
       }
 
@@ -120,17 +120,18 @@ export default function Home() {
                 htmlFor="email"
                 className="mb-2 block text-sm font-medium text-slate-700"
               >
-                Email address
+                Email or phone number
               </label>
 
               <input
                 id="email"
-                type="email"
+                type="text"
+                autoComplete="username"
                 value={email}
                 onChange={(event) =>
                   setEmail(event.target.value)
                 }
-                placeholder="you@example.com"
+                placeholder="you@example.com or 09123456789"
                 required
                 disabled={isLoading}
                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"

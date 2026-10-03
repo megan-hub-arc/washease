@@ -1,14 +1,14 @@
 <?php
 
-use App\Http\Controllers\AuthController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\AddressController;
-use App\Http\Controllers\OrderController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DeliveryRunController;
 use App\Http\Controllers\DeliveryZoneController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ServiceController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -26,7 +26,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/staff/services', [ServiceController::class, 'store']);
     Route::put('/staff/services/{service}', [ServiceController::class, 'update']);
 
+    Route::put('/customer/profile', [CustomerController::class, 'updateProfile']);
     Route::get('/customer/profile', [CustomerController::class, 'profile']);
+    Route::post('/staff/customers', [CustomerController::class, 'staffStore']);
+    Route::post('/staff/customers/{customer}/addresses', [CustomerController::class, 'staffAddress']);
+    Route::post('/staff/customers/{customer}/orders', [CustomerController::class, 'staffOrder']);
     Route::get('/staff/customers', [CustomerController::class, 'staffIndex']);
 
     Route::get('/addresses', [AddressController::class, 'index']);
@@ -42,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/staff/orders', [OrderController::class, 'staffIndex']);
     Route::post('/staff/orders/schedule', [OrderController::class, 'schedule']);
+    Route::put('/staff/orders/{order}/requested-times', [OrderController::class, 'updateRequestedTimes']);
     Route::put('/staff/orders/{order}/weight', [OrderController::class, 'updateWeight']);
     Route::put('/staff/orders/{order}/payment', [OrderController::class, 'updatePayment']);
 
@@ -51,14 +56,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/staff/delivery-zones/{deliveryZone}', [DeliveryZoneController::class, 'update']);
     Route::put('/staff/addresses/{address}/zone', [DeliveryZoneController::class, 'assignAddress']);
 
+    Route::post('/staff/riders', [DeliveryRunController::class, 'storeRider']);
+    Route::put('/staff/riders/{rider}', [DeliveryRunController::class, 'updateRider']);
+    Route::put('/staff/riders/{rider}/duty', [DeliveryRunController::class, 'updateDuty']);
+    Route::post('/staff/delivery-runs/{deliveryRun}/return', [DeliveryRunController::class, 'confirmReturn']);
     Route::get('/staff/riders', [DeliveryRunController::class, 'riders']);
+    Route::get('/staff/delivery-runs', [DeliveryRunController::class, 'index']);
+    Route::post('/staff/delivery-runs/{deliveryRun}/start', [DeliveryRunController::class, 'start']);
     Route::post('/staff/delivery-runs', [DeliveryRunController::class, 'store']);
     Route::post('/staff/delivery-runs/{deliveryRun}/orders', [DeliveryRunController::class, 'assignOrders']);
 
     Route::get('/staff/reports', [OrderController::class, 'reports']);
-    });
+});
 
 Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
 });
-

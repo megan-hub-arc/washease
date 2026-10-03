@@ -21,16 +21,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'delivery_run_id',
     'notes',
     'requested_at',
+    'pickup_requested_at',
+    'delivery_requested_at',
     'scheduled_at',
     'payment_status',
     'payment_method',
+    'payment_preference',
     'paid_at',
-    
+
 ])]
 
 class Order extends Model
 {
-        public const STATUSES = [
+    public const STATUSES = [
         'Pending',
         'Confirmed',
         'Picked Up',
@@ -38,14 +41,17 @@ class Order extends Model
         'Ready for Delivery',
         'Delivered',
     ];
+
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
     }
+
     public function deliveryRun(): BelongsTo
     {
         return $this->belongsTo(DeliveryRun::class);
     }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -64,6 +70,8 @@ class Order extends Model
             'priority_score' => 'integer',
             'delivery_sequence' => 'integer',
             'requested_at' => 'datetime',
+            'pickup_requested_at' => 'datetime',
+            'delivery_requested_at' => 'datetime',
             'scheduled_at' => 'datetime',
             'paid_at' => 'datetime',
         ];

@@ -21,6 +21,7 @@ type Customer = {
 type Address = {
   id: number;
   user_id: number;
+  archived_at: string | null;
   delivery_zone_id: number | null;
   label: string | null;
   address: string;
@@ -37,6 +38,8 @@ type ZoneForm = {
 };
 
 export default function ZonesPage() {
+  const [addressSearch, setAddressSearch] = useState("");
+  const [onlyUnassigned, setOnlyUnassigned] = useState(true);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -309,6 +312,8 @@ export default function ZonesPage() {
     }
   }
 
+  const visibleAddresses = addresses.filter(address => (!onlyUnassigned || !address.delivery_zone_id) && `${address.user?.name || ""} ${address.address}`.toLowerCase().includes(addressSearch.toLowerCase()));
+
   return (
     <AdminShell title="Delivery Zones">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -331,6 +336,7 @@ export default function ZonesPage() {
           </div>
         )}
 
+        {unassignedCount > 0 && <a href="#address-assignment" className="block rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{unassignedCount} addresses need a zone before delivery scheduling. Assign zones below →</a>}
         <section className="grid gap-4 sm:grid-cols-3">
           <SummaryCard label="Delivery Zones" value={zones.length} />
           <SummaryCard label="Assigned Addresses" value={assignedCount} />
@@ -394,7 +400,7 @@ export default function ZonesPage() {
                         <td className="px-5 py-4 text-right">
                           <button
                             type="button"
-                            onClick={() => startEditing(zone)}
+                            onClick={() => { startEditing(zone); document.getElementById("zone-form")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
                             className="rounded-lg border border-[#cfe0ef] px-3 py-1.5 text-xs font-medium text-[#28618e] hover:bg-[#f2f8fd]"
                           >
                             Edit
@@ -409,6 +415,7 @@ export default function ZonesPage() {
           </div>
 
           <form
+            id="zone-form"
             onSubmit={saveZone}
             className="h-fit rounded-2xl border border-[#dbe7f3] bg-white p-5"
           >
@@ -493,7 +500,7 @@ export default function ZonesPage() {
           </form>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-[#dbe7f3] bg-white">
+        <section id="address-assignment" className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#dbe7f3] bg-white">
           <div className="border-b border-[#e3edf6] px-5 py-4">
             <h2 className="font-semibold text-[#17395d]">
               Customer Address Assignment
@@ -504,13 +511,14 @@ export default function ZonesPage() {
             </p>
           </div>
 
+          <div className="flex flex-wrap gap-3 border-b p-4"><label className="text-sm">Find address<input type="search" value={addressSearch} onChange={e => setAddressSearch(e.target.value)} placeholder="Customer or address" className="ml-2 rounded-lg border p-2" /></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={onlyUnassigned} onChange={e => setOnlyUnassigned(e.target.checked)} />Only addresses without a zone</label></div>
           {isLoading ? (
             <p className="p-5 text-sm text-[#7892ad]">
               Loading customer addresses...
             </p>
-          ) : addresses.length === 0 ? (
+          ) : visibleAddresses.length === 0 ? (
             <p className="p-5 text-sm text-[#7892ad]">
-              No customer addresses found.
+              No addresses match these filters. Clear the search or show all addresses.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -525,7 +533,7 @@ export default function ZonesPage() {
                 </thead>
 
                 <tbody className="divide-y divide-[#edf3f8]">
-                  {addresses.map((address) => (
+                  {visibleAddresses.map((address) => (
                     <tr key={address.id}>
                       <td className="px-5 py-4">
                         <p className="font-medium text-[#17395d]">
@@ -538,6 +546,7 @@ export default function ZonesPage() {
 
                       <td className="px-5 py-4">
                         <p className="text-[#4f7192]">{address.address}</p>
+                        {address.archived_at && <p className="mt-1 text-xs font-medium text-amber-800">Retained for an existing order · no longer a saved address</p>}
                         {address.label && (
                           <p className="mt-1 text-xs text-[#8aa0b5]">
                             {address.label}
@@ -559,6 +568,7 @@ export default function ZonesPage() {
 
                       <td className="px-5 py-4">
                         <select
+                          aria-label={`Delivery zone for ${address.user?.name || "customer"} at ${address.address}`}
                           value={address.delivery_zone_id ?? ""}
                           disabled={
                             assigningAddressId === address.id ||

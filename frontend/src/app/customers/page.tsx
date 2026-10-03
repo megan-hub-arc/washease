@@ -1,5 +1,6 @@
 "use client";
 
+import StaffCustomerIntake from "@/components/StaffCustomerIntake";
 import { API_URL } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
@@ -29,7 +30,7 @@ type Order = {
 type Customer = {
   id: number;
   name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   addresses: Address[];
   orders: Order[];
@@ -37,6 +38,7 @@ type Customer = {
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -92,7 +94,7 @@ export default function CustomersPage() {
     return customers.filter((customer) => {
       return (
         customer.name.toLowerCase().includes(query) ||
-        customer.email.toLowerCase().includes(query) ||
+        (customer.email ?? "").toLowerCase().includes(query) ||
         (customer.phone ?? "").toLowerCase().includes(query)
       );
     });
@@ -124,6 +126,11 @@ export default function CustomersPage() {
           </div>
         )}
 
+        <StaffCustomerIntake customers={customers} onSaved={saved => {
+          setCustomers(current => [...current.filter(customer => customer.id !== saved.id), saved].sort((a, b) => a.name.localeCompare(b.name)));
+          setSelectedCustomer(current => current?.id === saved.id ? saved : current);
+        }} />
+
         <section className="grid gap-4 sm:grid-cols-3">
           <SummaryCard label="Customers" value={customers.length} />
           <SummaryCard label="Saved Addresses" value={totalAddresses} />
@@ -144,6 +151,7 @@ export default function CustomersPage() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              aria-label="Search customers by name, email or phone"
               placeholder="Search customer..."
               className="w-full rounded-lg border border-[#cfdeeb] px-3 py-2 text-sm outline-none focus:border-[#68a9d7] sm:max-w-xs"
             />
@@ -166,7 +174,7 @@ export default function CustomersPage() {
                     <th className="px-5 py-3">Phone</th>
                     <th className="px-5 py-3">Addresses</th>
                     <th className="px-5 py-3">Orders</th>
-                    <th className="px-5 py-3">Latest Address</th>
+                    <th className="px-5 py-3">Saved address</th><th className="px-5 py-3">Action</th>
                   </tr>
                 </thead>
 
@@ -181,7 +189,7 @@ export default function CustomersPage() {
                             {customer.name}
                           </p>
                           <p className="mt-1 text-xs text-[#8aa0b5]">
-                            {customer.email}
+                            {customer.email || "No email provided"}
                           </p>
                         </td>
 
@@ -214,6 +222,7 @@ export default function CustomersPage() {
                             </span>
                           )}
                         </td>
+                        <td className="px-5 py-4"><button type="button" onClick={() => { setSelectedCustomer(customer); setTimeout(() => document.getElementById("customer-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }} className="whitespace-nowrap rounded-lg border px-3 py-2 font-semibold">View customer</button></td>
                       </tr>
                     );
                   })}
@@ -222,6 +231,7 @@ export default function CustomersPage() {
             </div>
           )}
         </section>
+        {selectedCustomer && <section id="customer-detail" className="scroll-mt-24 rounded-xl border bg-white p-5"><div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">{selectedCustomer.name}</h2><p className="mt-2 text-sm">{selectedCustomer.email || "No email provided"} · {selectedCustomer.phone || "No phone provided"}</p></div><button onClick={() => setSelectedCustomer(null)} className="rounded-lg border px-3 py-2">Close</button></div><h3 className="mt-5 font-semibold">Saved addresses</h3>{selectedCustomer.addresses.map(address => <p key={address.id} className="mt-2 text-sm">{address.label ? `${address.label}: ` : ""}{address.address} · {address.delivery_zone?.name || "Zone not assigned"}</p>)}{!selectedCustomer.addresses.length && <p className="mt-2 text-sm">No saved addresses.</p>}<h3 className="mt-5 font-semibold">Order history</h3><div className="mt-3 space-y-2">{selectedCustomer.orders.map(order => <a key={order.id} href={`/orders?order=${order.id}`} className="block rounded-lg border p-3 text-sm hover:bg-slate-50"><strong>{order.order_number}</strong> · {order.status} · {order.payment_status} · {Number(order.total_amount || 0) > 0 ? `₱${Number(order.total_amount).toFixed(2)}` : "Awaiting pricing"}<span className="ml-2 font-semibold">Open order →</span></a>)}{!selectedCustomer.orders.length && <p className="text-sm">No orders yet.</p>}</div></section>}
       </div>
     </AdminShell>
   );

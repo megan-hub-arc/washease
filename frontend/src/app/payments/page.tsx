@@ -7,7 +7,7 @@ import AdminShell from "@/components/admin/AdminShell";
 type Customer = {
   id: number;
   name: string;
-  email: string;
+  email: string | null;
 };
 
 type Order = {
@@ -16,6 +16,7 @@ type Order = {
   status: string;
   payment_status: string;
   payment_method: string | null;
+  payment_preference: string | null;
   total_amount: string | number | null;
   paid_at: string | null;
   user: Customer | null;
@@ -23,6 +24,10 @@ type Order = {
 
 export default function PaymentsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [collecting, setCollecting] = useState<Order | null>(null);
+  const [method, setMethod] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
@@ -68,6 +73,19 @@ export default function PaymentsPage() {
     loadOrders();
   }, []);
 
+  async function recordCollection() {
+    if (!collecting) return;
+    if (!method) { setError("Choose the method actually collected: Cash or GCash."); return; }
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      const response = await fetch(`${API_URL}/staff/orders/${collecting.id}/payment`, { method: "PUT", headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("washease_token")}` }, body: JSON.stringify({ payment_status: "Paid", payment_method: method }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Unable to record collection.");
+      setOrders(items => items.map(item => item.id === collecting.id ? { ...item, ...data.order } : item));
+      setSuccess(`Collection recorded for ${collecting.order_number} via ${method}.`); setCollecting(null);
+    } catch (e) { setError(e instanceof Error ? e.message : "Unable to record collection."); } finally { setSaving(false); }
+  }
+
   const paidOrders = orders.filter(
     (order) => order.payment_status === "Paid"
   );
@@ -103,7 +121,7 @@ export default function PaymentsPage() {
       <div className="mx-auto max-w-7xl space-y-6">
         <p className="text-sm text-[#6f89a3]">
           Review payment status, payment methods, and recorded revenue.
-          Payment updates are managed from the Orders module.
+          Record a collection only after confirming the money was received.
         </p>
 
         {error && (
@@ -112,6 +130,8 @@ export default function PaymentsPage() {
           </div>
         )}
 
+        {success && <p role="status" className="rounded-lg bg-emerald-50 p-4 text-emerald-800">{success}</p>}
+        {collecting && <section id="collection-form" className="scroll-mt-24 rounded-xl border border-[#17395d] bg-white p-5"><h2 className="font-semibold">Record collection · {collecting.order_number}</h2><p className="mt-2 text-sm">{collecting.user?.name} · ₱{Number(collecting.total_amount).toFixed(2)}</p><p className="mt-2 text-sm text-slate-600">Booking preference: {collecting.payment_preference || "Not recorded"}. Choose the method actually received.</p><label className="mt-4 block text-sm">Actual collection method<select disabled={saving} value={method} onChange={e => setMethod(e.target.value)} className="mt-2 block rounded-lg border p-3"><option value="">Choose actual method</option><option>Cash</option><option>GCash</option></select></label><p className="mt-3 text-sm text-slate-600">Confirm the full amount was received before saving. This records payment; it does not process a transfer.</p><div className="mt-4 flex gap-3"><button disabled={saving} onClick={recordCollection} className="rounded-lg bg-emerald-800 px-4 py-3 font-semibold text-white">{saving ? "Saving..." : "Confirm full payment received"}</button><button disabled={saving} onClick={() => setCollecting(null)} className="rounded-lg border px-4 py-3">Cancel</button></div></section>}
         <section className="grid gap-4 sm:grid-cols-3">
           <SummaryCard label="Paid Orders" value={paidOrders.length} />
           <SummaryCard label="Unpaid Orders" value={unpaidOrders.length} />
@@ -136,11 +156,13 @@ export default function PaymentsPage() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
+                aria-label="Search payments by order, customer or method"
                 placeholder="Search payment..."
                 className="rounded-lg border border-[#cfdeeb] px-3 py-2 text-sm outline-none"
               />
 
               <select
+                aria-label="Filter payments by status"
                 value={filter}
                 onChange={(event) => setFilter(event.target.value)}
                 className="rounded-lg border border-[#cfdeeb] bg-white px-3 py-2 text-sm"
@@ -170,7 +192,7 @@ export default function PaymentsPage() {
                     <th className="px-5 py-3">Amount</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3">Method</th>
-                    <th className="px-5 py-3">Paid At</th>
+                    <th className="px-5 py-3">Paid At</th><th className="px-5 py-3">Action</th>
                   </tr>
                 </thead>
 
@@ -186,7 +208,7 @@ export default function PaymentsPage() {
                       </td>
 
                       <td className="px-5 py-4 font-medium text-[#17395d]">
-                        ₱{Number(order.total_amount ?? 0).toFixed(2)}
+                        {order.total_amount === null || Number(order.total_amount) <= 0 ? "Awaiting pricing" : `₱${Number(order.total_amount).toFixed(2)}`}
                       </td>
 
                       <td className="px-5 py-4">
@@ -210,6 +232,7 @@ export default function PaymentsPage() {
                           ? new Date(order.paid_at).toLocaleString()
                           : "—"}
                       </td>
+                      <td className="px-5 py-4"><div className="flex flex-col items-start gap-2">{order.payment_status === "Unpaid" && <button disabled={saving || Number(order.total_amount || 0) <= 0} onClick={() => { setCollecting(order); setMethod(""); setError(""); setSuccess(""); setTimeout(() => document.getElementById("collection-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }} className="rounded-lg bg-[#17395d] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Record collection</button>}<a className="text-sm font-semibold underline" href={`/orders?order=${order.id}`}>Open order →</a>{order.payment_status === "Unpaid" && Number(order.total_amount || 0) <= 0 && <span className="text-xs text-slate-600">Record weight and price in Orders first.</span>}</div></td>
                     </tr>
                   ))}
                 </tbody>

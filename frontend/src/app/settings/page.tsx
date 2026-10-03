@@ -270,7 +270,7 @@ export default function SettingsPage() {
                         <td className="px-5 py-4 text-right">
                           <button
                             type="button"
-                            onClick={() => editService(service)}
+                            onClick={() => { editService(service); document.getElementById("service-form")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
                             className="rounded-lg border border-[#cfe0ef] px-3 py-1.5 text-xs font-medium text-[#28618e]"
                           >
                             Edit
@@ -285,6 +285,7 @@ export default function SettingsPage() {
           </div>
 
           <form
+            id="service-form"
             onSubmit={saveService}
             className="h-fit rounded-2xl border border-[#dbe7f3] bg-white p-5"
           >
@@ -335,7 +336,7 @@ export default function SettingsPage() {
 
               <label className="block">
                 <span className="mb-1.5 block text-xs font-medium text-[#5e7891]">
-                  Rate
+                  {form.pricing_type === "per_kg" ? "Rate per kilogram (₱)" : "Price per order (₱)"}
                 </span>
 
                 <input
@@ -368,6 +369,7 @@ export default function SettingsPage() {
               </label>
             </div>
 
+            <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{form.rate && Number(form.rate) >= 0 ? form.pricing_type === "per_kg" ? `Example: 5 kg × ₱${Number(form.rate).toFixed(2)} = ₱${(Number(form.rate) * 5).toFixed(2)}` : `Each order costs ₱${Number(form.rate).toFixed(2)}` : "Enter a rate to preview the charge."} {form.is_active ? "Customers can book this service." : "This service is hidden from new bookings."}</p>
             <div className="mt-5 flex gap-2">
               <button
                 type="submit"

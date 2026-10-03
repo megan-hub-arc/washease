@@ -14,7 +14,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:20', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -38,16 +38,17 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'login' => ['required_without:email', 'string', 'max:255'],
+            'email' => ['required_without:login', 'email'],
             'password' => ['required', 'string'],
         ]);
-
-        $user = User::where('email', $validated['email'])->first();
-
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+        $identifier = $validated['login'] ?? $validated['email'];
+        $matches = str_contains($identifier, '@')
+            ? User::where('email', $identifier)->limit(2)->get()
+            : User::where('phone', $identifier)->where('role', 'customer')->limit(2)->get();
+        $user = $matches->count() === 1 ? $matches->first() : null;
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            throw ValidationException::withMessages(['login' => ['The provided credentials are incorrect.']]);
         }
 
         $token = $user->createToken('auth-token')->plainTextToken;

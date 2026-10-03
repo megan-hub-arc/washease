@@ -36,3 +36,16 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+.staff-workspace :is(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.staff-workspace button:not(:disabled),
+.staff-workspace summary {
+  cursor: pointer;
+}
+
+.staff-workspace button:disabled {
+  cursor: not-allowed;
+}

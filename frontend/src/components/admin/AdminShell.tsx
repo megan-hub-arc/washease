@@ -50,6 +50,18 @@ const navigation = [
   },
 ];
 
+const pageGuidance: Record<string, { description: string; next: string; href: string }> = {
+  "/dashboard": { description: "Review the workload, then open the area that needs attention.", next: "Manage orders", href: "/orders" },
+  "/orders": { description: "Confirm bookings, record laundry weight, update progress, and record collected payments.", next: "Plan deliveries", href: "/deliveries" },
+  "/deliveries": { description: "Schedule ready orders, assign a rider, depart, and confirm their return.", next: "Check rider availability", href: "/riders" },
+  "/customers": { description: "Find customer contact details, saved addresses, and order counts.", next: "Manage customer orders", href: "/orders" },
+  "/riders": { description: "Check who is available and update on-duty status. Plan their trips in Deliveries.", next: "Plan a delivery", href: "/deliveries" },
+  "/payments": { description: "Review outstanding balances and record confirmed collections.", next: "Review laundry orders", href: "/orders" },
+  "/reports": { description: "Review booking activity and collected revenue for a selected period.", next: "View payment records", href: "/payments" },
+  "/zones": { description: "Set service areas and assign customer addresses so ready orders can be scheduled.", next: "Schedule deliveries", href: "/deliveries" },
+  "/settings": { description: "Manage laundry services, prices, and which services customers can book.", next: "Review orders", href: "/orders" },
+};
+
 export default function AdminShell({
   children,
   title,
@@ -57,6 +69,8 @@ export default function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
 
+  const [sessionError, setSessionError] = useState("");
+  const [sessionRevision, setSessionRevision] = useState(0);
   const [user, setUser] = useState<User | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -98,6 +112,7 @@ export default function AdminShell({
     }
 
     async function validateSession() {
+      setSessionError("");
       try {
         const response = await fetch(`${API_URL}/user`, {
           headers: {
@@ -149,14 +164,12 @@ export default function AdminShell({
 
         setUser(authenticatedUser);
       } catch {
-        localStorage.removeItem("washease_token");
-        localStorage.removeItem("washease_user");
-        router.replace("/");
+        setSessionError("WashEase could not verify your session. Check the connection and try again. Your saved session has been kept.");
       }
     }
 
     validateSession();
-  }, [router]);
+  }, [router, sessionRevision]);
 
   async function handleSignOut() {
     const token = localStorage.getItem("washease_token");
@@ -189,9 +202,7 @@ export default function AdminShell({
   if (!user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f3f8fe]">
-        <p className="text-sm text-slate-500">
-          Loading WashEase...
-        </p>
+        <div className="max-w-md space-y-4 p-6 text-center"><p role={sessionError ? "alert" : "status"} className="text-sm text-slate-700">{sessionError || "Loading WashEase..."}</p>{sessionError && <button onClick={() => setSessionRevision(value => value + 1)} className="rounded-lg bg-[#17395d] px-4 py-3 text-white">Retry connection</button>}</div>
       </main>
     );
   }
@@ -208,7 +219,8 @@ export default function AdminShell({
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f8fe] text-[#17395d]">
+    <div className="staff-workspace min-h-screen bg-[#f3f8fe] text-[#17395d]">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3">Skip to page content</a>
       {sidebarOpen && (
         <button
           type="button"
@@ -239,15 +251,16 @@ export default function AdminShell({
               </p>
 
               <p className="mt-1 text-xs text-[#7892ad]">
-                Admin Dashboard
+                {user.role === "admin" ? "Admin workspace" : "Staff workspace"}
               </p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-5">
+        <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-2 py-5">
           <Link
             href="/dashboard"
+            aria-current={isActive("/dashboard") ? "page" : undefined}
             onClick={() => setSidebarOpen(false)}
             className={`mb-5 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
               isActive("/dashboard")
@@ -276,6 +289,7 @@ export default function AdminShell({
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={isActive(item.href) ? "page" : undefined}
                     onClick={() =>
                       setSidebarOpen(false)
                     }
@@ -321,10 +335,11 @@ export default function AdminShell({
             <button
               type="button"
               aria-label="Toggle navigation"
+              aria-expanded={sidebarOpen}
               onClick={() =>
                 setSidebarOpen((open) => !open)
               }
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#dbe7f3] bg-[#f4f8fc] text-xl text-[#173f66]"
+              className="flex h-10 w-10 items-center justify-center rounded-lg lg:hidden border border-[#dbe7f3] bg-[#f4f8fc] text-xl text-[#173f66]"
             >
               ☰
             </button>
@@ -415,7 +430,8 @@ export default function AdminShell({
           </div>
         </header>
 
-        <main className="p-4 sm:p-6">
+        <main id="main-content" className="mx-auto max-w-[1440px] p-4 sm:p-6">
+          {pathname !== "/dashboard" && pageGuidance[pathname] && <section className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#dbe7f3] bg-white p-4"><p className="max-w-3xl text-sm leading-6 text-slate-600">{pageGuidance[pathname].description}</p><Link href={pageGuidance[pathname].href} className="shrink-0 rounded-lg border border-[#17395d] px-4 py-2 text-sm font-semibold text-[#17395d] hover:bg-slate-50">{pageGuidance[pathname].next} →</Link></section>}
           {children}
         </main>
       </div>

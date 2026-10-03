@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { API_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
@@ -15,12 +16,15 @@ type ReportData = {
 };
 
 export default function DashboardPage() {
+  const [attention, setAttention] = useState<{ id: number; order_number: string; reason: string }[]>([]);
+  const [revision, setRevision] = useState(0);
   const [report, setReport] = useState<ReportData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadReport() {
+      setIsLoading(true); setError("");
       const token = localStorage.getItem("washease_token");
 
       if (!token) {
@@ -46,6 +50,18 @@ export default function DashboardPage() {
           );
         }
 
+        const orderResponse = await fetch(`${API_URL}/staff/orders`, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } });
+        if (!orderResponse.ok) throw new Error("Unable to load the work queue. Retry to refresh dashboard data.");
+        const orderData: { id: number; order_number: string; status: string; weight: string | null; payment_status: string; delivery_run_id: number | null; address: { delivery_zone: { is_active: boolean } | null } | null }[] = await orderResponse.json();
+        setAttention(orderData.flatMap(order => {
+          const reasons: string[] = [];
+          if (order.status === "Pending") reasons.push("Booking awaiting confirmation");
+          if (["Picked Up", "Processing", "Ready for Delivery"].includes(order.status) && Number(order.weight || 0) <= 0) reasons.push("Laundry weight missing");
+          if (order.status === "Ready for Delivery" && !order.address?.delivery_zone?.is_active) reasons.push("Active delivery zone needed");
+          if (order.status === "Ready for Delivery" && !order.delivery_run_id) reasons.push("Delivery rider not assigned");
+          if (order.status === "Delivered" && order.payment_status === "Unpaid") reasons.push("Delivered order awaiting payment");
+          return reasons.length ? [{ id: order.id, order_number: order.order_number, reason: reasons.join(" · ") }] : [];
+        }));
         const data = (await response.json()) as ReportData;
 
         setReport(data);
@@ -61,7 +77,7 @@ export default function DashboardPage() {
     }
 
     loadReport();
-  }, []);
+  }, [revision]);
 
   const readyForDelivery =
     report?.orders_by_status?.["Ready for Delivery"] ?? 0;
@@ -73,38 +89,39 @@ export default function DashboardPage() {
       <section>
         <div>
           <h2 className="text-xl font-bold text-[#17395d]">
-            Overview
+            Work needing attention
           </h2>
 
           <p className="mt-1 text-sm text-[#7892ad]">
-            WashEase operations at a glance.
+            Open an order to resolve its next action. Summary totals below cover all time.
           </p>
         </div>
 
         {error && (
           <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
+            {error}<button onClick={() => setRevision(value => value + 1)} className="ml-3 font-semibold underline">Retry</button>
           </div>
         )}
 
+        <section className="mt-5 rounded-xl border border-[#dbe7f3] bg-white p-5"><div className="flex items-center justify-between gap-3"><h3 className="font-semibold">Order work queue {isLoading ? "" : `· ${attention.length}`}</h3><button disabled={isLoading} onClick={() => setRevision(value => value + 1)} className="rounded-lg border px-3 py-2 text-sm">{isLoading ? "Refreshing..." : "Refresh"}</button></div>{isLoading ? <p className="mt-4 text-sm">Loading work queue...</p> : error ? <p className="mt-4 text-sm">Queue unavailable. Retry above.</p> : !attention.length ? <p className="mt-4 text-sm text-slate-600">No orders need attention under these checks. Review Deliveries for active trips and rider returns.</p> : <div className="mt-4 divide-y">{attention.map(item => <Link key={item.id} href={`/orders?order=${item.id}`} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:bg-slate-50"><div><strong className="text-sm">{item.order_number}</strong><p className="mt-1 text-sm text-slate-600">{item.reason}</p></div><span className="text-sm font-semibold">Open order →</span></Link>)}</div>}</section>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label="Total orders"
-            value={isLoading ? "..." : String(report?.total_orders ?? 0)}
+            label="All-time orders"
+            value={(isLoading || error) ? "—" : String(report?.total_orders ?? 0)}
             icon="▣"
           />
 
           <MetricCard
             label="Ready for delivery"
-            value={isLoading ? "..." : String(readyForDelivery)}
+            value={(isLoading || error) ? "—" : String(readyForDelivery)}
             icon="♧"
           />
 
           <MetricCard
             label="Pending payments"
             value={
-              isLoading
-                ? "..."
+              (isLoading || error)
+                ? "—"
                 : String(report?.payments?.unpaid ?? 0)
             }
             suffix="orders"
@@ -112,10 +129,10 @@ export default function DashboardPage() {
           />
 
           <MetricCard
-            label="Total paid revenue"
+            label="All-time collected revenue"
             value={
-              isLoading
-                ? "..."
+              (isLoading || error)
+                ? "—"
                 : `₱${revenue.toLocaleString("en-PH", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
@@ -125,16 +142,16 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="mt-5 rounded-xl border border-[#dbe7f3] bg-white p-6">
-          <h3 className="font-semibold text-[#17395d]">
-            Live WashEase data
-          </h3>
-
-          <p className="mt-2 text-sm leading-6 text-[#7892ad]">
-            These overview metrics are loaded from the WashEase
-            Laravel API using the authenticated staff account.
-          </p>
-        </div>
+        <section className="mt-6 rounded-xl border border-[#dbe7f3] bg-white p-5">
+          <h3 className="font-semibold text-[#17395d]">Continue the daily workflow</h3>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {[
+              { href: "/orders", title: "Manage laundry orders", detail: "Confirm bookings, weigh laundry, and update processing progress." },
+              { href: "/deliveries", title: "Plan and track deliveries", detail: `${readyForDelivery} orders ready for delivery. Schedule orders, assign riders, and confirm return.` },
+              { href: "/payments", title: "Review unpaid orders", detail: `${report?.payments?.unpaid ?? 0} unpaid orders. Check collection records before recording payment.` },
+            ].map(action => <Link key={action.href} href={action.href} className="rounded-xl border border-[#dbe7f3] p-4 transition hover:border-[#17395d] hover:bg-slate-50"><p className="font-semibold">{action.title} →</p><p className="mt-2 text-sm leading-6 text-slate-600">{action.detail}</p></Link>)}
+          </div>
+        </section>
       </section>
     </AdminShell>
   );
