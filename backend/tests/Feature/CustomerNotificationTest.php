@@ -98,9 +98,12 @@ class CustomerNotificationTest extends TestCase
         $customer = User::factory()->create(['role' => 'customer']);
         $order = $this->order($customer);
         DB::beginTransaction();
-        $order->update(['status' => 'Confirmed']);
-        $this->assertEquals(2, $customer->notifications()->count());
-        DB::rollBack();
+        try {
+            $order->update(['status' => 'Confirmed']);
+            $this->assertEquals(2, $customer->notifications()->count());
+        } finally {
+            DB::rollBack();
+        }
         $this->assertEquals('Pending', $order->fresh()->status);
         $this->assertEquals(1, $customer->notifications()->count());
     }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { API_URL } from "@/lib/api";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -35,12 +36,13 @@ export default function Home() {
         `${API_URL}/login`,
         {
           method: "POST",
+          signal: AbortSignal.timeout(15000),
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
           body: JSON.stringify({
-            login: email,
+            login: email.trim(),
             password,
           }),
         }
@@ -87,7 +89,7 @@ export default function Home() {
       localStorage.removeItem("washease_user");
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setError(error instanceof TypeError || error.name === "TimeoutError" ? "We could not reach WashEase. Check your connection and try again." : error.message);
       } else {
         setError("Unable to sign in. Please try again.");
       }
@@ -147,6 +149,7 @@ export default function Home() {
               </label>
 
               <input
+                autoComplete="current-password"
                 id="password"
                 type="password"
                 value={password}
@@ -180,12 +183,9 @@ export default function Home() {
 
           <p className="mt-6 text-center text-sm text-slate-500">
             New to WashEase?{" "}
-            <button
-              type="button"
-              className="font-semibold text-blue-600 hover:text-blue-700"
-            >
+            <Link href="/register" className="font-semibold text-blue-600 underline hover:text-blue-700">
               Create an account
-            </button>
+            </Link>
           </p>
         </div>
 

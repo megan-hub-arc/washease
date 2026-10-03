@@ -49,3 +49,12 @@ a {
 .staff-workspace button:disabled {
   cursor: not-allowed;
 }
+
+:is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

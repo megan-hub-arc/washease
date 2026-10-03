@@ -57,9 +57,12 @@ class OrderEmailTest extends TestCase
     {
         config(['services.order_updates.email_enabled' => true]);
         DB::beginTransaction();
-        $this->order();
-        $this->assertDatabaseCount('jobs', 1);
-        DB::rollBack();
+        try {
+            $this->order();
+            $this->assertDatabaseCount('jobs', 1);
+        } finally {
+            DB::rollBack();
+        }
         $this->assertDatabaseCount('jobs', 0);
         $this->assertDatabaseCount('notifications', 0);
         $this->assertDatabaseCount('orders', 0);

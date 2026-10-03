@@ -2,7 +2,7 @@
 
 import OrderRequestedTimes from "@/components/admin/OrderRequestedTimes";
 import { API_URL } from "@/lib/api";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DeliveryAssignment, { type DeliveryRun } from "@/components/admin/DeliveryAssignment";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -67,6 +67,7 @@ const paymentMethods = [
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedFilter, setSelectedFilter] = useState("All");
+  const lastOrderTrigger = useRef<HTMLElement | null>(null);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -192,8 +193,13 @@ export default function OrdersPage() {
   }
 
   function openOrder(order: Order) {
+    lastOrderTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelectedOrder(order);
-    setTimeout(() => document.getElementById("order-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    setTimeout(() => {
+      const workspace = document.getElementById("order-workspace");
+      workspace?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+      workspace?.focus({ preventScroll: true });
+    }, 0);
   }
 
   return (
@@ -223,14 +229,15 @@ export default function OrdersPage() {
               onChange={(event) =>
                 setSearch(event.target.value)
               }
-              placeholder="Search orders..."
+              placeholder="Order number or customer name"
               className="w-full rounded-xl border border-[#dbe7f3] bg-white py-2.5 pl-10 pr-4 text-sm text-[#17395d] outline-none transition focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
             />
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex flex-wrap gap-2">
             {filters.map((filter) => (
               <button
+                aria-pressed={selectedFilter === filter}
                 key={filter}
                 type="button"
                 onClick={() =>
@@ -254,44 +261,47 @@ export default function OrdersPage() {
           </div>
         )}
 
-        <div className="mt-5 overflow-hidden rounded-xl border border-[#dbe7f3] bg-white">
+        <p role="status" className="mt-3 text-sm text-slate-600">{isLoading ? "Loading orders…" : `${filteredOrders.length} matching orders`}</p>
+        {!isLoading && filteredOrders.length === 0 && <div className="mt-4 rounded-xl border bg-white p-5"><p>No orders match this search and status.</p><button type="button" onClick={() => { setSearch(""); setSelectedFilter("All"); }} className="mt-3 min-h-11 rounded-lg border px-4 py-2 text-blue-800">Clear search and show all orders</button></div>}
+        <div className="mt-4 grid gap-3 xl:hidden">{!isLoading && filteredOrders.map(order => <OrderCard key={order.id} order={order} onManage={() => openOrder(order)} />)}</div>
+        <div className="mt-5 hidden xl:block overflow-hidden rounded-xl border border-[#dbe7f3] bg-white">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1050px] border-collapse text-left">
               <thead className="bg-[#f8fbfe]">
                 <tr className="border-b border-[#dbe7f3] text-xs font-semibold uppercase tracking-wide text-[#91a8be]">
-                  <th className="px-5 py-4">
+                  <th scope="col" className="px-5 py-4">
                     Order ID
                   </th>
 
-                  <th className="px-5 py-4">
+                  <th scope="col" className="px-5 py-4">
                     Customer
                   </th>
 
-                  <th className="px-5 py-4">
+                  <th scope="col" className="px-5 py-4">
                     Service
                   </th>
 
-                  <th className="px-5 py-4">
+                  <th scope="col" className="px-5 py-4">
                     Weight
                   </th>
 
-                  <th className="px-5 py-4">
+                  <th scope="col" className="px-5 py-4">
                     Zone
                   </th>
 
-                  <th className="px-5 py-4">
+                  <th scope="col" className="px-5 py-4">
                     Status
                   </th>
 
-                  <th className="px-5 py-4">
+                  <th scope="col" className="px-5 py-4">
                     Payment
                   </th>
 
-                  <th className="px-5 py-4 text-right">
+                  <th scope="col" className="px-5 py-4 text-right">
                     Amount
                   </th>
 
-                  <th className="px-5 py-4 text-right">
+                  <th scope="col" className="px-5 py-4 text-right">
                     Actions
                   </th>
                 </tr>
@@ -336,9 +346,7 @@ export default function OrdersPage() {
           <OrderManagementPanel
             key={selectedOrder.id}
             order={selectedOrder}
-            onClose={() =>
-              setSelectedOrder(null)
-            }
+            onClose={() => { setSelectedOrder(null); lastOrderTrigger.current?.focus(); }}
             onUpdated={handleOrderUpdated}
           />
         )}
@@ -585,7 +593,7 @@ function OrderManagementPanel({
         (order.payment_method ?? "Cash"));
 
   return (
-    <div id="order-workspace" className="mt-5 scroll-mt-24 rounded-xl border border-[#dbe7f3] bg-white p-5">
+    <div tabIndex={-1} role="region" aria-label="Manage selected order" id="order-workspace" className="mt-5 scroll-mt-24 rounded-xl border border-[#dbe7f3] bg-white p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[#91a8be]">
@@ -856,6 +864,15 @@ function OrderManagementPanel({
   );
 }
 
+function OrderCard({ order, onManage }: { order: Order; onManage: () => void }) {
+  const onDelivery = order.status === "Ready for Delivery" && order.delivery_run?.status === "Started";
+  return <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-slate-900">{order.order_number}</h3><p className="mt-1 text-sm text-slate-700">{order.user?.name ?? "Unknown customer"}</p></div><StatusBadge status={onDelivery ? "Out on delivery" : order.status} /></div>
+    <dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-slate-600">Service / weight</dt><dd className="mt-1 text-slate-900">{order.service_type} · {order.weight ? `${order.weight} kg` : "Weight needed"}</dd></div><div><dt className="text-slate-600">Zone</dt><dd className="mt-1 text-slate-900">{order.address?.delivery_zone?.name ?? order.address?.zone ?? "Unassigned"}</dd></div><div><dt className="text-slate-600">Amount</dt><dd className="mt-1 font-semibold">₱{Number(order.total_amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd></div><div><dt className="text-slate-600">Payment</dt><dd className="mt-1">{order.payment_status}{order.payment_status === "Paid" && order.payment_method ? ` via ${order.payment_method}` : ""}</dd></div></dl>
+    <button type="button" onClick={onManage} aria-label={`Manage order ${order.order_number}`} className="mt-4 min-h-11 w-full rounded-lg border border-blue-300 px-4 py-2 font-semibold text-blue-800 focus-visible:outline-2 focus-visible:outline-blue-600">Manage order</button>
+  </article>;
+}
+
 function OrderRow({
   order,
   onManage,
@@ -870,7 +887,7 @@ function OrderRow({
   return (
     <tr className="border-b border-[#edf2f7] last:border-b-0 hover:bg-[#fbfdff]">
       <td className="px-5 py-4">
-        <p className="font-semibold text-[#17395d]">
+        <p className="whitespace-nowrap font-semibold text-[#17395d]">
           {order.order_number}
         </p>
 

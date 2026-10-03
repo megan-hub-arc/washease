@@ -53,9 +53,12 @@ class CustomerBroadcastTest extends TestCase
         $customer = User::factory()->create(['role' => 'customer']);
         $address = Address::create(['user_id' => $customer->id, 'address' => 'Test street']);
         DB::beginTransaction();
-        Order::create(['user_id' => $customer->id, 'address_id' => $address->id, 'order_number' => 'WS-LIVE', 'status' => 'Pending']);
-        $this->assertDatabaseHas('jobs', ['queue' => 'live-updates']);
-        DB::rollBack();
+        try {
+            Order::create(['user_id' => $customer->id, 'address_id' => $address->id, 'order_number' => 'WS-LIVE', 'status' => 'Pending']);
+            $this->assertDatabaseHas('jobs', ['queue' => 'live-updates']);
+        } finally {
+            DB::rollBack();
+        }
         $this->assertDatabaseCount('jobs', 0);
         $this->assertDatabaseCount('notifications', 0);
         $this->assertDatabaseCount('orders', 0);
