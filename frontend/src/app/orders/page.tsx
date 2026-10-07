@@ -65,6 +65,8 @@ const paymentMethods = [
 ];
 
 export default function OrdersPage() {
+  const [syncNotice, setSyncNotice] = useState("");
+  const [syncError, setSyncError] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedFilter, setSelectedFilter] = useState("All");
   const lastOrderTrigger = useRef<HTMLElement | null>(null);
@@ -75,12 +77,20 @@ export default function OrdersPage() {
     useState<Order | null>(null);
 
   useEffect(() => {
+    let disposed = false;
+    let inFlight = false;
+    let firstLoad = true;
+    let signature: string | null = null;
+    const controller = new AbortController();
     async function loadOrders() {
+      if (disposed || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
       const token = localStorage.getItem("washease_token");
 
       if (!token) {
         setError("Authentication token not found.");
         setIsLoading(false);
+        inFlight = false;
         return;
       }
 
@@ -88,6 +98,8 @@ export default function OrdersPage() {
         const response = await fetch(
           `${API_URL}/staff/orders`,
           {
+            signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
+            cache: "no-store",
             headers: {
               Accept: "application/json",
               Authorization: `Bearer ${token}`,
@@ -104,22 +116,36 @@ export default function OrdersPage() {
         const data = await response.json();
 
         const loaded: Order[] = Array.isArray(data) ? data : [data];
+        if (disposed) return;
+        const nextSignature = JSON.stringify(loaded);
+        if (signature !== null && signature !== nextSignature) setSyncNotice("Orders updated automatically. New bookings and status changes are now shown.");
+        signature = nextSignature;
+        setSyncError("");
         setOrders(loaded);
         const requestedId = Number(new URLSearchParams(window.location.search).get("order"));
         const requestedOrder = loaded.find(item => item.id === requestedId);
-        if (requestedOrder) { setSelectedOrder(requestedOrder); setTimeout(() => document.getElementById("order-workspace")?.scrollIntoView({ block: "start" }), 0); }
+        if (firstLoad && requestedOrder) { setSelectedOrder(requestedOrder); setTimeout(() => document.getElementById("order-workspace")?.scrollIntoView({ block: "start" }), 0); }
       } catch (error) {
+        if (disposed) return;
+        if (!firstLoad) { setSyncError("Order updates could not connect. Keeping existing orders and retrying every 15 seconds."); return; }
         if (error instanceof Error) {
           setError(error.message);
         } else {
           setError("Unable to load orders.");
         }
       } finally {
-        setIsLoading(false);
+        inFlight = false;
+        firstLoad = false;
+        if (!disposed) setIsLoading(false);
       }
     }
 
-    loadOrders();
+    void loadOrders();
+    const visible = () => { void loadOrders(); };
+    const interval = window.setInterval(visible, 15000);
+    document.addEventListener("visibilitychange", visible);
+    window.addEventListener("online", visible);
+    return () => { disposed = true; controller.abort(); window.clearInterval(interval); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", visible); };
   }, []);
 
   const filteredOrders = useMemo(() => {
@@ -204,6 +230,9 @@ export default function OrdersPage() {
 
   return (
     <AdminShell title="Orders">
+      <p className="mb-3 text-xs text-slate-600">Orders update every 15 seconds while this page is visible. Open order forms stay unchanged; reopen an order to load its latest details.</p>
+      {syncNotice && <div role="status" className="mb-4 flex justify-between gap-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-900"><p>{syncNotice}</p><button type="button" onClick={() => setSyncNotice("")} aria-label="Dismiss update notice">×</button></div>}
+      {syncError && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{syncError}</p>}
       <section>
         <div>
           <h2 className="text-xl font-bold text-[#17395d]">

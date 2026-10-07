@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { connectCustomerLive } from "@/lib/customer-live";
 import { API_URL } from "@/lib/api";
@@ -10,6 +10,8 @@ type Notice = { id: string; read_at: string | null; created_at: string; data: { 
 
 export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUpdated: (orders: T[]) => void }) {
   const router = useRouter();
+  const previous = useRef<string | null>(null);
+  const [updateMessage, setUpdateMessage] = useState("");
   const [liveConnected, setLiveConnected] = useState(false);
   const [notifications, setNotifications] = useState<Notice[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -49,6 +51,9 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUp
         if (!ordersResponse.ok || !notificationsResponse.ok) throw new Error("Automatic updates could not connect. Previously loaded information is still shown.");
         const [orders, notices] = await Promise.all([ordersResponse.json(), notificationsResponse.json()]);
         if (disposed) return;
+        const signature = JSON.stringify(orders);
+        if (previous.current !== null && previous.current !== signature) setUpdateMessage("Your order information has changed. Open Orders to see the latest status.");
+        previous.current = signature;
         onOrdersUpdated(orders as T[]);
         setNotifications(notices.notifications); setUnreadCount(notices.unread_count); setLastPage(notices.last_page);
         setLastSynced(new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit", second: "2-digit" }).format(new Date()));
@@ -99,6 +104,7 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUp
       <div><h3 className="text-lg font-semibold text-slate-900">Order updates <span className="text-sm font-normal text-slate-600">{unreadCount} unread</span></h3><p className="mt-1 text-xs text-slate-600">{liveConnected ? "Live updates connected. We also check every 15 seconds." : "Automatic checks every 15 seconds while this page is visible."}{lastSynced ? ` Last checked: ${lastSynced} PHT.` : " Checking for updates…"}</p></div>
       <button type="button" disabled={loading} onClick={() => { setLoading(true); setRevision(value => value + 1); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-blue-600">Check now</button>
     </div>
+    {updateMessage && <div role="status" className="mt-3 flex items-start justify-between gap-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-900"><p>{updateMessage}</p><button type="button" aria-label="Dismiss order update" onClick={() => setUpdateMessage("")} className="px-2 font-semibold">×</button></div>}
     {error && <p role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{error} We retry every 15 seconds.</p>}
     {readError && <p role="alert" className="mt-3 text-sm text-red-700">{readError}</p>}
     <details className="mt-4">

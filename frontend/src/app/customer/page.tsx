@@ -53,6 +53,7 @@ type Order = {
 export default function CustomerPage() {
   const router = useRouter();
 
+  const [section, setSection] = useState("Home");
   const [user, setUser] = useState<User | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -198,7 +199,7 @@ export default function CustomerPage() {
   }, [router]);
 
   useEffect(() => {
-    const showOrder = () => setOrderFilter("All");
+    const showOrder = () => { setOrderFilter("All"); setSection("Orders"); };
     window.addEventListener("washease:show-customer-order", showOrder);
     return () => window.removeEventListener("washease:show-customer-order", showOrder);
   }, []);
@@ -268,6 +269,7 @@ export default function CustomerPage() {
       setBookingNotes("");
       setRequestedTimes({ pickup: "", delivery: "" });
 
+      setSection("Orders");
       setSuccess(
         `Booking ${data.order.order_number} was created successfully.`
       );
@@ -348,8 +350,8 @@ export default function CustomerPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl space-y-6 px-6 py-8">
-        <section>
+      <div className="mx-auto max-w-3xl space-y-5 px-4 pt-6 pb-32">
+        <section hidden={section !== "Home"}>
           <p className="text-sm text-slate-500">
             Welcome back
           </p>
@@ -360,57 +362,33 @@ export default function CustomerPage() {
         </section>
 
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <div role="status" className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             {success}
           </div>
         )}
 
         {user && <CustomerLiveUpdates onOrdersUpdated={setOrders} />}
 
-        {user && <CustomerAccount user={user} addresses={addresses} onProfileSaved={setUser} onAddressesSaved={(updated) => {
+        <div hidden={section !== "Account"}>{user && <CustomerAccount user={user} addresses={addresses} onProfileSaved={setUser} onAddressesSaved={(updated) => {
           setAddresses(updated);
           if (!updated.some(address => String(address.id) === selectedAddressId)) setSelectedAddressId("");
-        }} />}
+        }} />}</div>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Saved addresses
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-slate-900">
-              {addresses.length}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Available services
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-slate-900">
-              {services.length}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Your orders
-            </p>
-
-            <p className="mt-2 text-3xl font-bold text-slate-900">
-              {orders.length}
-            </p>
+        <section hidden={section !== "Home"} className="rounded-2xl bg-blue-700 p-6 text-white">
+          <h2 className="text-xl font-semibold">Your laundry, at a glance</h2>
+          <p className="mt-2">{orders.filter(order => order.status !== "Delivered").length} active orders</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button type="button" onClick={() => setSection("Book")} className="rounded-xl bg-white px-5 py-3 font-semibold text-blue-800">Book a pickup</button>
+            <button type="button" onClick={() => setSection("Orders")} className="rounded-xl border border-blue-300 px-5 py-3 font-semibold">Track orders</button>
           </div>
         </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section hidden={section !== "Book"} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
             <h3 className="text-lg font-semibold text-slate-900">
               Book a pickup
@@ -422,6 +400,7 @@ export default function CustomerPage() {
             </p>
           </div>
 
+          {addresses.length === 0 && <p className="mb-4 text-sm">Add a pickup address first. <button type="button" onClick={() => setSection("Account")} className="font-semibold text-blue-700 underline">Open Account</button></p>}
           <form onSubmit={handleBooking} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
@@ -553,7 +532,7 @@ export default function CustomerPage() {
           </form>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section hidden={section !== "Book"} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
             <h3 className="text-lg font-semibold text-slate-900">
               Laundry services
@@ -591,7 +570,7 @@ export default function CustomerPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section hidden={section !== "Orders"} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="text-lg font-semibold text-slate-900">
             Track your orders
           </h3>
@@ -643,6 +622,11 @@ export default function CustomerPage() {
           )}
         </section>
       </div>
+      <nav aria-label="Customer navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-lg">
+        <div className="mx-auto grid max-w-3xl grid-cols-4">{["Home", "Book", "Orders", "Account"].map((item, index) => <button key={item} type="button" aria-current={section === item ? "page" : undefined} onClick={() => { setSection(item); window.scrollTo({ top: 0, behavior: "instant" }); }} className={`flex min-h-16 flex-col items-center justify-center gap-1 px-2 py-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-blue-600 ${section === item ? "bg-blue-50 text-blue-800" : "text-slate-600"}`}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={["M3 10 12 3l9 7v11h-6v-7H9v7H3Z", "M12 5v14M5 12h14", "M6 3h12v18H6ZM9 8h6M9 12h6M9 16h4", "M8 7a4 4 0 1 0 8 0 4 4 0 0 0-8 0ZM4 21v-2a8 8 0 0 1 16 0v2"][index]} /></svg>{item}{item === "Orders" && orders.some(order => order.status !== "Delivered") ? ` (${orders.filter(order => order.status !== "Delivered").length})` : ""}
+        </button>)}</div>
+      </nav>
     </main>
   );
 }
