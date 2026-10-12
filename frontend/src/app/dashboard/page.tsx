@@ -1,200 +1,94 @@
 "use client";
 
 import Link from "next/link";
-import { API_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { API_URL } from "@/lib/api";
 import AdminShell from "@/components/admin/AdminShell";
+import WorkspaceIcon, { type IconName } from "@/components/WorkspaceIcon";
 
-type ReportData = {
-  total_orders: number;
-  total_revenue: string | number;
-  orders_by_status: Record<string, number>;
-  payments: {
-    paid: number;
-    unpaid: number;
-  };
-};
+type Order = { id: number; order_number: string; status: string; weight: string | null; payment_status: string; delivery_run_id: number | null; user: { name: string }; address: { delivery_zone: { is_active: boolean } | null } | null };
+type Rider = { id: number; name: string; availability: string; current_run: { id: number; total_load_kg: string; capacity_kg: string } | null };
 
-export default function DashboardPage() {
-  const [attention, setAttention] = useState<{ id: number; order_number: string; reason: string }[]>([]);
-  const [revision, setRevision] = useState(0);
-  const [report, setReport] = useState<ReportData | null>(null);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadReport() {
-      setIsLoading(true); setError("");
-      const token = localStorage.getItem("washease_token");
-
-      if (!token) {
-        setError("Authentication token not found.");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `${API_URL}/staff/reports`,
-          {
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Unable to load dashboard data (${response.status}).`
-          );
-        }
-
-        const orderResponse = await fetch(`${API_URL}/staff/orders`, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } });
-        if (!orderResponse.ok) throw new Error("Unable to load the work queue. Retry to refresh dashboard data.");
-        const orderData: { id: number; order_number: string; status: string; weight: string | null; payment_status: string; delivery_run_id: number | null; address: { delivery_zone: { is_active: boolean } | null } | null }[] = await orderResponse.json();
-        setAttention(orderData.flatMap(order => {
-          const reasons: string[] = [];
-          if (order.status === "Pending") reasons.push("Booking awaiting confirmation");
-          if (["Picked Up", "Processing", "Ready for Delivery"].includes(order.status) && Number(order.weight || 0) <= 0) reasons.push("Laundry weight missing");
-          if (order.status === "Ready for Delivery" && !order.address?.delivery_zone?.is_active) reasons.push("Active delivery zone needed");
-          if (order.status === "Ready for Delivery" && !order.delivery_run_id) reasons.push("Delivery rider not assigned");
-          if (order.status === "Delivered" && order.payment_status === "Unpaid") reasons.push("Delivered order awaiting payment");
-          return reasons.length ? [{ id: order.id, order_number: order.order_number, reason: reasons.join(" · ") }] : [];
-        }));
-        const data = (await response.json()) as ReportData;
-
-        setReport(data);
-      } catch (error) {
-        if (error instanceof Error) {
-          setError(error.message);
-        } else {
-          setError("Unable to load dashboard data.");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadReport();
-  }, [revision]);
-
-  const readyForDelivery =
-    report?.orders_by_status?.["Ready for Delivery"] ?? 0;
-
-  const revenue = Number(report?.total_revenue ?? 0);
-
-  return (
-    <AdminShell title="Overview">
-      <section>
-        <div>
-          <h2 className="text-xl font-bold text-[#17395d]">
-            Work needing attention
-          </h2>
-
-          <p className="mt-1 text-sm text-[#7892ad]">
-            Open an order to resolve its next action. Summary totals below cover all time.
-          </p>
-        </div>
-
-        {error && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}<button onClick={() => setRevision(value => value + 1)} className="ml-3 font-semibold underline">Retry</button>
-          </div>
-        )}
-
-        <section className="mt-5 rounded-xl border border-[#dbe7f3] bg-white p-5"><div className="flex items-center justify-between gap-3"><h3 className="font-semibold">Order work queue {isLoading ? "" : `· ${attention.length}`}</h3><button disabled={isLoading} onClick={() => setRevision(value => value + 1)} className="rounded-lg border px-3 py-2 text-sm">{isLoading ? "Refreshing..." : "Refresh"}</button></div>{isLoading ? <p className="mt-4 text-sm">Loading work queue...</p> : error ? <p className="mt-4 text-sm">Queue unavailable. Retry above.</p> : !attention.length ? <p className="mt-4 text-sm text-slate-600">No orders need attention under these checks. Review Deliveries for active trips and rider returns.</p> : <div className="mt-4 divide-y">{attention.map(item => <Link key={item.id} href={`/orders?order=${item.id}`} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:bg-slate-50"><div><strong className="text-sm">{item.order_number}</strong><p className="mt-1 text-sm text-slate-600">{item.reason}</p></div><span className="text-sm font-semibold">Open order →</span></Link>)}</div>}</section>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            label="All-time orders"
-            value={(isLoading || error) ? "—" : String(report?.total_orders ?? 0)}
-            icon="▣"
-          />
-
-          <MetricCard
-            label="Ready for delivery"
-            value={(isLoading || error) ? "—" : String(readyForDelivery)}
-            icon="♧"
-          />
-
-          <MetricCard
-            label="Pending payments"
-            value={
-              (isLoading || error)
-                ? "—"
-                : String(report?.payments?.unpaid ?? 0)
-            }
-            suffix="orders"
-            icon="▤"
-          />
-
-          <MetricCard
-            label="All-time collected revenue"
-            value={
-              (isLoading || error)
-                ? "—"
-                : `₱${revenue.toLocaleString("en-PH", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}`
-            }
-            icon="↗"
-          />
-        </div>
-
-        <section className="mt-6 rounded-xl border border-[#dbe7f3] bg-white p-5">
-          <h3 className="font-semibold text-[#17395d]">Continue the daily workflow</h3>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {[
-              { href: "/orders", title: "Manage laundry orders", detail: "Confirm bookings, weigh laundry, and update processing progress." },
-              { href: "/deliveries", title: "Plan and track deliveries", detail: `${readyForDelivery} orders ready for delivery. Schedule orders, assign riders, and confirm return.` },
-              { href: "/payments", title: "Review unpaid orders", detail: `${report?.payments?.unpaid ?? 0} unpaid orders. Check collection records before recording payment.` },
-            ].map(action => <Link key={action.href} href={action.href} className="rounded-xl border border-[#dbe7f3] p-4 transition hover:border-[#17395d] hover:bg-slate-50"><p className="font-semibold">{action.title} →</p><p className="mt-2 text-sm leading-6 text-slate-600">{action.detail}</p></Link>)}
-          </div>
-        </section>
-      </section>
-    </AdminShell>
-  );
+function nextAction(order: Order) {
+  const href = `/orders?order=${order.id}`;
+  if (order.status === "Pending") return { label: "Confirm booking", href };
+  if (["Picked Up", "Processing", "Ready for Delivery"].includes(order.status) && Number(order.weight || 0) <= 0) return { label: "Record weight", href };
+  if (order.status === "Confirmed") return { label: "Record pickup", href };
+  if (order.status === "Picked Up") return { label: "Start processing", href };
+  if (order.status === "Processing") return { label: "Review progress", href };
+  if (order.status === "Ready for Delivery" && !order.address?.delivery_zone?.is_active) return { label: "Check delivery zone", href };
+  if (order.status === "Ready for Delivery" && !order.delivery_run_id) return { label: "Plan delivery", href: "/deliveries" };
+  if (order.status === "Delivered" && order.payment_status === "Unpaid") return { label: "Review collection", href };
+  return null;
 }
 
-type MetricCardProps = {
-  label: string;
-  value: string;
-  suffix?: string;
-  icon: string;
-};
+export default function DashboardPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [riders, setRiders] = useState<Rider[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [revision, setRevision] = useState(0);
+  const [updatedAt, setUpdatedAt] = useState("");
+  const [search, setSearch] = useState("");
 
-function MetricCard({
-  label,
-  value,
-  suffix,
-  icon,
-}: MetricCardProps) {
-  return (
-    <article className="min-h-[112px] rounded-xl border border-[#dbe7f3] bg-white p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-[#7892ad]">
-            {label}
-          </p>
+  useEffect(() => {
+    let stopped = false;
+    let inFlight = false;
+    let controller: AbortController | undefined;
+    async function load() {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
+      controller = new AbortController();
+      const timeout = window.setTimeout(() => controller?.abort(), 10000);
+      try {
+        const token = localStorage.getItem("washease_token");
+        if (!token) throw new Error("Sign in to load your workspace.");
+        const headers = { Accept: "application/json", Authorization: `Bearer ${token}` };
+        const responses = await Promise.all([fetch(`${API_URL}/staff/orders`, { headers, signal: controller.signal }), fetch(`${API_URL}/staff/riders`, { headers, signal: controller.signal })]);
+        if (responses.some(response => !response.ok)) throw new Error("Unable to refresh the workspace. Check your connection and retry.");
+        const [newOrders, newRiders] = await Promise.all(responses.map(response => response.json()));
+        if (!stopped) {
+          setOrders(newOrders); setRiders(newRiders); setError("");
+          setUpdatedAt(new Date().toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "Asia/Manila" }));
+        }
+      } catch (problem) {
+        if (!stopped) setError(problem instanceof Error && problem.name !== "AbortError" ? problem.message : "Refresh timed out. Check your connection and retry.");
+      } finally {
+        window.clearTimeout(timeout); inFlight = false;
+        if (!stopped) setLoading(false);
+      }
+    }
+    void load();
+    const timer = window.setInterval(() => { void load(); }, 15000);
+    const resume = () => { void load(); };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("online", resume);
+    return () => { stopped = true; controller?.abort(); window.clearInterval(timer); document.removeEventListener("visibilitychange", resume); window.removeEventListener("online", resume); };
+  }, [revision]);
 
-          <div className="mt-4 flex items-baseline gap-2">
-            <p className="text-2xl font-bold text-[#17395d]">
-              {value}
-            </p>
-
-            {suffix && (
-              <span className="text-xs text-[#8ba2b8]">
-                {suffix}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#edf6ff] text-[#299cdb]">
-          {icon}
-        </div>
+  const queue = orders.map(order => ({ order, action: nextAction(order) })).filter(item => item.action);
+  const filtered = queue.filter(({ order }) => `${order.order_number} ${order.user.name}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const ready = orders.filter(order => order.status === "Ready for Delivery" && !order.delivery_run_id).length;
+  const cards: { label: string; value: number; href: string; icon: IconName; color: string }[] = [
+    { label: "New bookings", value: orders.filter(order => order.status === "Pending").length, href: "/orders", icon: "orders", color: "bg-blue-50 text-blue-700" },
+    { label: "In processing", value: orders.filter(order => order.status === "Processing").length, href: "/orders", icon: "settings", color: "bg-amber-50 text-amber-800" },
+    { label: "Ready to assign", value: ready, href: "/deliveries", icon: "deliveries", color: "bg-emerald-50 text-emerald-800" },
+    { label: "Awaiting rider return", value: riders.filter(rider => rider.availability === "Awaiting return").length, href: "/deliveries", icon: "return", color: "bg-violet-50 text-violet-800" },
+  ];
+  return <AdminShell title="Overview">
+    <section className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="mb-1 text-xs font-semibold uppercase tracking-widest text-blue-700">Staff workspace</p><h2 className="text-3xl font-bold tracking-tight">Your current workload</h2><p className="mt-2 text-sm text-slate-600">Confirm bookings, move laundry forward, and keep deliveries on track.</p></div><Link href="/customers" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700"><WorkspaceIcon name="plus" className="h-5 w-5" />New customer booking</Link></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600"><p>{updatedAt ? `Last updated ${updatedAt} PHT · checks every 15 seconds while visible` : "Loading current orders and riders…"}</p><button type="button" onClick={() => setRevision(value => value + 1)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium">Refresh workspace</button></div>
+      {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error} {updatedAt && "Previously loaded data remains visible and may be out of date."}<button type="button" onClick={() => setRevision(value => value + 1)} className="ml-3 font-semibold underline">Retry</button></div>}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(card => <Link key={card.label} href={card.href} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 hover:border-blue-300"><span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${card.color}`}><WorkspaceIcon name={card.icon} className="h-6 w-6" /></span><span><span className="block text-sm text-slate-600">{card.label}</span><strong className="mt-1 block text-3xl tracking-tight">{loading || (error && !updatedAt) ? "—" : card.value}</strong></span><span aria-hidden="true" className="ml-auto text-slate-400">›</span></Link>)}</div>
+      <div className="grid items-start gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 p-5"><h3 className="text-lg font-semibold">Orders needing action</h3><Link href="/orders" className="text-sm font-semibold text-blue-700">View all orders →</Link></div><div className="px-5 pb-4"><label htmlFor="work-search" className="sr-only">Search the work queue by customer or order number</label><input id="work-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a customer or order number" className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm" /></div>
+          {loading ? <p role="status" className="p-5 text-sm text-slate-600">Loading orders…</p> : error && !updatedAt ? <p className="p-5 text-sm text-slate-600">Order data unavailable. Retry above.</p> : !filtered.length ? <p className="p-5 text-sm text-slate-600">{search ? "No matching orders. Try another name or order number." : "No orders need action under these checks. Check Deliveries for active trips."}</p> : <ul className="divide-y divide-slate-100">{filtered.slice(0, 8).map(({ order, action }) => <li key={order.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"><div className="min-w-0"><p className="font-semibold">{order.user.name}</p><p className="mt-1 text-xs text-slate-500">{order.order_number}</p><span className="mt-2 inline-block rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{order.status}</span></div><Link href={action!.href} className="min-h-11 rounded-xl border border-blue-200 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">{action!.label} →</Link></li>)}</ul>}
+          {filtered.length > 8 && <p className="border-t border-slate-100 p-5 text-xs text-slate-600">Showing 8 of {filtered.length} matching orders. Open Orders for the complete list.</p>}
+        </section>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="text-lg font-semibold">Delivery workspace</h3><p className="mt-1 text-sm text-slate-600">{loading ? "Checking delivery readiness…" : `${ready} orders ready and unassigned`}</p><Link href="/deliveries" className="mt-4 flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Plan and track delivery runs →</Link><div className="mt-5 space-y-3">{loading ? <p className="text-sm text-slate-600">Loading rider availability…</p> : !riders.length ? <p className="text-sm text-slate-600">{error ? "Rider data unavailable." : "No riders added yet."} <Link href="/riders" className="font-semibold text-blue-700">Open Riders</Link></p> : riders.slice(0, 5).map(rider => <article key={rider.id} className="rounded-xl border border-slate-200 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{rider.name}</strong><span className={`rounded-lg px-2 py-1 text-xs font-semibold ${rider.availability === "Available" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>{rider.availability}</span></div>{rider.current_run && <p className="mt-2 text-xs text-slate-600">Run #{rider.current_run.id} · {rider.current_run.total_load_kg} / {rider.current_run.capacity_kg} kg</p>}<Link href={rider.availability === "Off duty" ? "/riders" : "/deliveries"} className="mt-3 inline-block py-1 text-sm font-semibold text-blue-700">{rider.availability === "Awaiting return" ? "Review and confirm return" : rider.availability === "Available" ? "Plan a delivery" : rider.availability === "Off duty" ? "Review duty status" : "View current trips"} →</Link></article>)}</div><Link href="/riders" className="mt-4 inline-block text-sm font-semibold text-blue-700">View all riders →</Link></section>
       </div>
-    </article>
-  );
+      <p className="text-xs leading-5 text-slate-500">Counts show the current workload across all booking dates. Revenue and date-based summaries are available in <Link href="/reports" className="font-semibold text-blue-700">Reports</Link>.</p>
+    </section>
+  </AdminShell>;
 }

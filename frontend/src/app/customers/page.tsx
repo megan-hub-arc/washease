@@ -137,10 +137,10 @@ export default function CustomersPage() {
           <SummaryCard label="Customer Orders" value={totalOrders} />
         </section>
 
-        <section className="rounded-2xl border border-[#dbe7f3] bg-white">
+        <section className="rounded-2xl border border-[#e2e8f0] bg-white">
           <div className="flex flex-col gap-4 border-b border-[#e3edf6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-semibold text-[#17395d]">
+              <h2 className="font-semibold text-[#0f172a]">
                 Customer Records
               </h2>
               <p className="mt-1 text-xs text-[#8098ae]">
@@ -158,17 +158,17 @@ export default function CustomersPage() {
           </div>
 
           {isLoading ? (
-            <p className="p-5 text-sm text-[#7892ad]">
+            <p className="p-5 text-sm text-[#64748b]">
               Loading customers...
             </p>
           ) : filteredCustomers.length === 0 ? (
-            <p className="p-5 text-sm text-[#7892ad]">
+            <p className="p-5 text-sm text-[#64748b]">
               No customers found.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#7892ad]">
+                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
                   <tr>
                     <th className="px-5 py-3">Customer</th>
                     <th className="px-5 py-3">Phone</th>
@@ -185,7 +185,7 @@ export default function CustomersPage() {
                     return (
                       <tr key={customer.id}>
                         <td className="px-5 py-4">
-                          <p className="font-medium text-[#17395d]">
+                          <p className="font-medium text-[#0f172a]">
                             {customer.name}
                           </p>
                           <p className="mt-1 text-xs text-[#8aa0b5]">
@@ -208,7 +208,7 @@ export default function CustomersPage() {
                         <td className="px-5 py-4">
                           {firstAddress ? (
                             <>
-                              <p className="max-w-sm text-[#4f7192]">
+                              <p className="max-w-sm text-[#475569]">
                                 {firstAddress.address}
                               </p>
                               <p className="mt-1 text-xs text-[#8aa0b5]">
@@ -245,11 +245,11 @@ function SummaryCard({
   value: number;
 }) {
   return (
-    <div className="rounded-2xl border border-[#dbe7f3] bg-white p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-[#8ba2b8]">
+    <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-[#64748b]">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-[#17395d]">
+      <p className="mt-2 text-2xl font-semibold text-[#0f172a]">
         {value}
       </p>
     </div>

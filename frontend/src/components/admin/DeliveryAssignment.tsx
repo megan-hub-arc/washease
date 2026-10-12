@@ -41,11 +41,11 @@ export default function DeliveryAssignment({ orderIds, selectedWeight, initialRi
     } catch (e) { setError(e instanceof Error ? e.message : "Assignment failed."); } finally { setBusy(false); }
   }
   const field = "w-full rounded-lg border border-slate-300 p-2 text-sm";
-  return <section className="space-y-3 rounded-xl border border-[#dbe7f3] p-4">
-    <h4 className="font-semibold text-[#17395d]">2. Assign selected orders</h4>
+  return <section className="space-y-3 rounded-xl border border-[#e2e8f0] p-4">
+    <h4 className="font-semibold text-[#0f172a]">2. Assign selected orders</h4>
     <p className="text-sm text-slate-600">{orderIds.length} orders selected{selectedWeight !== undefined ? ` · ${selectedWeight.toFixed(2)} kg` : ""}</p>
     {!orderIds.length && <p className="rounded-lg bg-blue-50 p-3 text-sm">Select the order checkboxes above before saving a delivery.</p>}
-    <div className="flex flex-wrap gap-2">{[["new", "New delivery"], ["planned", "Add to planned run"]].map(([value, label]) => <button key={value} type="button" aria-pressed={mode === value} disabled={busy} onClick={() => { setMode(value); setRunId(""); setError(""); }} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${mode === value ? "bg-[#17395d] text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
+    <div className="flex flex-wrap gap-2">{[["new", "New delivery"], ["planned", "Add to planned run"]].map(([value, label]) => <button key={value} type="button" aria-pressed={mode === value} disabled={busy} onClick={() => { setMode(value); setRunId(""); setError(""); }} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${mode === value ? "bg-[#0f172a] text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
     {mode === "planned" && <label className="block text-sm">Planned run<select className={field} value={runId} disabled={busy} onChange={e => setRunId(e.target.value)}><option value="">Choose a run awaiting departure</option>{runs.filter(r => r.status === "Planned").map(r => <option key={r.id} value={r.id}>#{r.id} · {r.rider.name} · {r.orders.length}/{r.max_orders} orders · {r.total_load_kg}/{r.capacity_kg} kg</option>)}</select>{!runs.some(r => r.status === "Planned") && <span className="block text-slate-500">No planned runs. Choose New delivery.</span>}</label>}
     {mode === "new" && <div className="rounded-lg bg-emerald-50 p-3"><p className="mb-2 text-sm font-semibold text-emerald-900">Available riders</p><div className="flex flex-wrap gap-2">{riders.filter(r => r.availability === "Available").map(r => <button type="button" key={r.id} disabled={busy} aria-pressed={riderId === String(r.id)} onClick={() => setRiderId(String(r.id))} className={`rounded-lg border px-3 py-2 text-sm ${riderId === String(r.id) ? "bg-emerald-800 text-white" : "bg-white text-emerald-900"}`}>{r.name} · Available</button>)}</div>{!riders.some(r => r.availability === "Available") && <p className="text-sm text-emerald-900">No riders are currently available. Check duty status or confirm return from their last delivery.</p>}</div>}
     {mode === "new" && <div className="grid gap-3 sm:grid-cols-3">
@@ -55,6 +55,6 @@ export default function DeliveryAssignment({ orderIds, selectedWeight, initialRi
     </div>}
     <p className="text-xs text-slate-500">Use the vehicle’s actual capacity. Creating a delivery plans a new trip; click Depart run separately when ready. Riders must be on duty and returned before departure.</p>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-    <button type="button" disabled={busy || !orderIds.length} onClick={assign} className="rounded-lg bg-[#299cdb] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving..." : mode === "new" ? "Create delivery with selected orders" : "Add selected orders to run"}</button>
+    <button type="button" disabled={busy || !orderIds.length} onClick={assign} className="rounded-lg bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving..." : mode === "new" ? "Create delivery with selected orders" : "Add selected orders to run"}</button>
   </section>;
 }

@@ -77,7 +77,7 @@ export default function ReportsPage() {
           records.
         </p>
 
-        <form onSubmit={e => { e.preventDefault(); if (!from || !to || from > to) { setError("Choose a start and end date; end date must be on or after start date."); return; } setPeriod({ from, to }); }} className="flex flex-wrap items-end gap-3 rounded-xl border bg-white p-4"><label className="text-sm">From<input type="date" value={from} onChange={e => setFrom(e.target.value)} className="mt-1 block rounded-lg border p-2" /></label><label className="text-sm">To<input type="date" value={to} onChange={e => setTo(e.target.value)} className="mt-1 block rounded-lg border p-2" /></label><button disabled={isLoading} className="rounded-lg bg-[#17395d] px-4 py-2 text-white">Apply dates</button><button type="button" disabled={isLoading} onClick={() => { setFrom(""); setTo(""); setPeriod({ from: "", to: "" }); }} className="rounded-lg border px-4 py-2">All time</button></form>
+        <form onSubmit={e => { e.preventDefault(); if (!from || !to || from > to) { setError("Choose a start and end date; end date must be on or after start date."); return; } setPeriod({ from, to }); }} className="flex flex-wrap items-end gap-3 rounded-xl border bg-white p-4"><label className="text-sm">From<input type="date" value={from} onChange={e => setFrom(e.target.value)} className="mt-1 block rounded-lg border p-2" /></label><label className="text-sm">To<input type="date" value={to} onChange={e => setTo(e.target.value)} className="mt-1 block rounded-lg border p-2" /></label><button disabled={isLoading} className="rounded-lg bg-[#0f172a] px-4 py-2 text-white">Apply dates</button><button type="button" disabled={isLoading} onClick={() => { setFrom(""); setTo(""); setPeriod({ from: "", to: "" }); }} className="rounded-lg border px-4 py-2">All time</button></form>
         <p className="text-sm text-slate-600">{period.from ? `${period.from} to ${period.to}` : "All time"} · Philippine time. Order counts use booking date and current status. Collected revenue uses payment date, so it can include orders booked earlier.</p>
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -86,7 +86,7 @@ export default function ReportsPage() {
         )}
 
         {isLoading ? (
-          <div className="rounded-2xl border border-[#dbe7f3] bg-white p-5 text-sm text-[#7892ad]">
+          <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5 text-sm text-[#64748b]">
             Loading reports...
           </div>
         ) : reports ? (
@@ -113,9 +113,9 @@ export default function ReportsPage() {
               />
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-[#dbe7f3] bg-white">
+            <section className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
               <div className="border-b border-[#e3edf6] px-5 py-4">
-                <h2 className="font-semibold text-[#17395d]">
+                <h2 className="font-semibold text-[#0f172a]">
                   Orders by Status
                 </h2>
 
@@ -125,7 +125,7 @@ export default function ReportsPage() {
               </div>
 
               {statusEntries.length === 0 ? (
-                <p className="p-5 text-sm text-[#7892ad]">
+                <p className="p-5 text-sm text-[#64748b]">
                   No order statistics available.
                 </p>
               ) : (
@@ -135,7 +135,7 @@ export default function ReportsPage() {
                       key={status}
                       className="flex items-center justify-between px-5 py-4"
                     >
-                      <span className="text-sm text-[#4f7192]">
+                      <span className="text-sm text-[#475569]">
                         {status}
                       </span>
 
@@ -149,7 +149,7 @@ export default function ReportsPage() {
             </section>
           </>
         ) : (
-          <div className="rounded-2xl border border-[#dbe7f3] bg-white p-5 text-sm text-[#7892ad]">
+          <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5 text-sm text-[#64748b]">
             No report data available.
           </div>
         )}
@@ -166,12 +166,12 @@ function SummaryCard({
   value: number | string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#dbe7f3] bg-white p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-[#8ba2b8]">
+    <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-[#64748b]">
         {label}
       </p>
 
-      <p className="mt-2 text-2xl font-semibold text-[#17395d]">
+      <p className="mt-2 text-2xl font-semibold text-[#0f172a]">
         {value}
       </p>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceIcon from "@/components/WorkspaceIcon";
 import CustomerLiveUpdates from "@/components/CustomerLiveUpdates";
 import CustomerAccount from "@/components/CustomerAccount";
 import RequestedTimeFields from "@/components/RequestedTimeFields";
@@ -326,10 +327,13 @@ export default function CustomerPage() {
     );
   }
 
+  const activeOrders = orders.filter(order => order.status !== "Delivered");
+  const featuredOrder = activeOrders[0];
+
   return (
     <main className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900">
               WashEase
@@ -353,11 +357,11 @@ export default function CustomerPage() {
       <div className="mx-auto max-w-3xl space-y-5 px-4 pt-6 pb-32">
         <section hidden={section !== "Home"}>
           <p className="text-sm text-slate-500">
-            Welcome back
+            Your customer workspace
           </p>
 
           <h2 className="text-2xl font-bold text-slate-900">
-            {user?.name ?? "Customer"}
+            Hi, {user?.name.split(" ")[0] ?? "there"}
           </h2>
         </section>
 
@@ -380,13 +384,16 @@ export default function CustomerPage() {
           if (!updated.some(address => String(address.id) === selectedAddressId)) setSelectedAddressId("");
         }} />}</div>
 
-        <section hidden={section !== "Home"} className="rounded-2xl bg-blue-700 p-6 text-white">
-          <h2 className="text-xl font-semibold">Your laundry, at a glance</h2>
-          <p className="mt-2">{orders.filter(order => order.status !== "Delivered").length} active orders</p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button type="button" onClick={() => setSection("Book")} className="rounded-xl bg-white px-5 py-3 font-semibold text-blue-800">Book a pickup</button>
-            <button type="button" onClick={() => setSection("Orders")} className="rounded-xl border border-blue-300 px-5 py-3 font-semibold">Track orders</button>
-          </div>
+        <section hidden={section !== "Home"} className="space-y-5">
+          {featuredOrder ? <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-lg font-semibold">Your active order</h3><span className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">{featuredOrder.delivery_run?.status === "Started" ? "Out on delivery" : featuredOrder.status}</span></div>
+            <p className="mt-2 text-sm text-slate-500">{featuredOrder.order_number} · {featuredOrder.service_type}</p>
+            <OrderProgress order={featuredOrder} />
+            <div className="mt-5 border-t border-slate-100 pt-4"><p className="text-xs text-slate-500">Requested delivery</p><p className="mt-1 text-sm font-semibold">{requestedTimeLabel(featuredOrder.delivery_requested_at)}</p><p className="mt-1 text-xs text-slate-500">Your requested time; contact the shop to confirm arrangements.</p></div>
+            <button type="button" onClick={() => setSection("Orders")} className="mt-4 min-h-11 w-full rounded-xl border border-blue-200 px-4 text-sm font-semibold text-blue-700">View order details{activeOrders.length > 1 ? ` and ${activeOrders.length - 1} other active orders` : ""} →</button>
+          </article> : <article className="rounded-2xl border border-slate-200 bg-white p-6"><h3 className="text-lg font-semibold">Ready for your next laundry day?</h3><p className="mt-2 text-sm leading-6 text-slate-600">No active orders. Book a pickup, or open Orders to review your previous laundry.</p></article>}
+          <button type="button" onClick={() => setSection("Book")} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"><WorkspaceIcon name="plus" className="h-5 w-5" />Book a pickup</button>
+          <p className="px-1 text-sm leading-6 text-slate-500">Choose your service and pickup address. Staff will confirm your booking and update its progress.</p>
         </section>
         <section hidden={section !== "Book"} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
@@ -602,7 +609,7 @@ export default function CustomerPage() {
                     {order.delivery_run && <p className="text-xs text-slate-500">Rider: {order.delivery_run.rider.name} · {order.delivery_run.rider.phone || "Contact the shop"}</p>}
                   </div>
 
-                  <ol aria-label="Order progress" className="flex flex-wrap gap-2">{["Pending", "Confirmed", "Picked Up", "Processing", "Ready for Delivery", "Delivered"].map((stage, index, stages) => <li key={stage} aria-current={stage === order.status ? "step" : undefined} className={`rounded-lg px-3 py-2 text-xs ${stage === order.status ? "bg-blue-700 font-semibold text-white" : index < stages.indexOf(order.status) ? "bg-emerald-50 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>{stage === order.status ? "Current: " : ""}{stage}</li>)}</ol>
+                  <OrderProgress order={order} />
                   <div>
                     <p className="text-sm font-medium text-slate-700">
                       {order.delivery_run?.status === "Started" && order.status !== "Delivered" ? "Out on delivery" : order.status}
@@ -629,4 +636,14 @@ export default function CustomerPage() {
       </nav>
     </main>
   );
+}
+
+function OrderProgress({ order }: { order: Order }) {
+  const stages = ["Pending", "Confirmed", "Picked Up", "Processing", "Ready for Delivery", "Delivered"];
+  const current = stages.indexOf(order.status);
+  return <ol aria-label={`Progress for ${order.order_number}`} className="mt-5 space-y-0">{stages.map((stage, index) => <li key={stage} aria-current={index === current ? "step" : undefined} className="relative flex gap-3 pb-4 last:pb-0">
+    {index < stages.length - 1 && <span aria-hidden="true" className={`absolute top-6 left-[11px] h-full w-px ${index < current ? "bg-emerald-300" : "bg-slate-200"}`} />}
+    <span aria-hidden="true" className={`relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${index < current ? "border-emerald-600 bg-emerald-600 text-white" : index === current ? "border-blue-600 bg-blue-50" : "border-slate-300 bg-white"}`}>{index < current ? <WorkspaceIcon name="check" className="h-4 w-4" /> : index === current ? <span className="h-2 w-2 rounded-full bg-blue-600" /> : null}</span>
+    <span className={`pt-0.5 text-sm ${index === current ? "font-semibold text-blue-800" : index < current ? "text-slate-700" : "text-slate-500"}`}>{stage}{index === current && <span className="ml-2 text-xs font-normal">Current stage</span>}</span>
+  </li>)}</ol>;
 }

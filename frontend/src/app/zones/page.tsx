@@ -344,9 +344,9 @@ export default function ZonesPage() {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
-          <div className="overflow-hidden rounded-2xl border border-[#dbe7f3] bg-white">
+          <div className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
             <div className="border-b border-[#e3edf6] px-5 py-4">
-              <h2 className="font-semibold text-[#17395d]">
+              <h2 className="font-semibold text-[#0f172a]">
                 Configured Zones
               </h2>
               <p className="mt-1 text-xs text-[#8098ae]">
@@ -355,17 +355,17 @@ export default function ZonesPage() {
             </div>
 
             {isLoading ? (
-              <p className="p-5 text-sm text-[#7892ad]">
+              <p className="p-5 text-sm text-[#64748b]">
                 Loading delivery zones...
               </p>
             ) : zones.length === 0 ? (
-              <p className="p-5 text-sm text-[#7892ad]">
+              <p className="p-5 text-sm text-[#64748b]">
                 No delivery zones have been configured.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#7892ad]">
+                  <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
                     <tr>
                       <th className="px-5 py-3">Zone</th>
                       <th className="px-5 py-3">Priority</th>
@@ -377,7 +377,7 @@ export default function ZonesPage() {
                   <tbody className="divide-y divide-[#edf3f8]">
                     {zones.map((zone) => (
                       <tr key={zone.id}>
-                        <td className="px-5 py-4 font-medium text-[#17395d]">
+                        <td className="px-5 py-4 font-medium text-[#0f172a]">
                           {zone.name}
                         </td>
 
@@ -417,9 +417,9 @@ export default function ZonesPage() {
           <form
             id="zone-form"
             onSubmit={saveZone}
-            className="h-fit rounded-2xl border border-[#dbe7f3] bg-white p-5"
+            className="h-fit rounded-2xl border border-[#e2e8f0] bg-white p-5"
           >
-            <h2 className="font-semibold text-[#17395d]">
+            <h2 className="font-semibold text-[#0f172a]">
               {editingZoneId === null ? "Add Delivery Zone" : "Edit Delivery Zone"}
             </h2>
 
@@ -459,7 +459,7 @@ export default function ZonesPage() {
                 />
               </label>
 
-              <label className="flex items-center gap-2 text-sm text-[#4f7192]">
+              <label className="flex items-center gap-2 text-sm text-[#475569]">
                 <input
                   type="checkbox"
                   checked={form.is_active}
@@ -478,7 +478,7 @@ export default function ZonesPage() {
               <button
                 type="submit"
                 disabled={isSavingZone}
-                className="rounded-lg bg-[#173f66] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded-lg bg-[#2563eb] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
                 {isSavingZone
                   ? "Saving..."
@@ -500,9 +500,9 @@ export default function ZonesPage() {
           </form>
         </section>
 
-        <section id="address-assignment" className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#dbe7f3] bg-white">
+        <section id="address-assignment" className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
           <div className="border-b border-[#e3edf6] px-5 py-4">
-            <h2 className="font-semibold text-[#17395d]">
+            <h2 className="font-semibold text-[#0f172a]">
               Customer Address Assignment
             </h2>
             <p className="mt-1 text-xs text-[#8098ae]">
@@ -513,17 +513,17 @@ export default function ZonesPage() {
 
           <div className="flex flex-wrap gap-3 border-b p-4"><label className="text-sm">Find address<input type="search" value={addressSearch} onChange={e => setAddressSearch(e.target.value)} placeholder="Customer or address" className="ml-2 rounded-lg border p-2" /></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={onlyUnassigned} onChange={e => setOnlyUnassigned(e.target.checked)} />Only addresses without a zone</label></div>
           {isLoading ? (
-            <p className="p-5 text-sm text-[#7892ad]">
+            <p className="p-5 text-sm text-[#64748b]">
               Loading customer addresses...
             </p>
           ) : visibleAddresses.length === 0 ? (
-            <p className="p-5 text-sm text-[#7892ad]">
+            <p className="p-5 text-sm text-[#64748b]">
               No addresses match these filters. Clear the search or show all addresses.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#7892ad]">
+                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
                   <tr>
                     <th className="px-5 py-3">Customer</th>
                     <th className="px-5 py-3">Address</th>
@@ -536,7 +536,7 @@ export default function ZonesPage() {
                   {visibleAddresses.map((address) => (
                     <tr key={address.id}>
                       <td className="px-5 py-4">
-                        <p className="font-medium text-[#17395d]">
+                        <p className="font-medium text-[#0f172a]">
                           {address.user?.name ?? "Unknown customer"}
                         </p>
                         <p className="mt-1 text-xs text-[#8aa0b5]">
@@ -545,7 +545,7 @@ export default function ZonesPage() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <p className="text-[#4f7192]">{address.address}</p>
+                        <p className="text-[#475569]">{address.address}</p>
                         {address.archived_at && <p className="mt-1 text-xs font-medium text-amber-800">Retained for an existing order · no longer a saved address</p>}
                         {address.label && (
                           <p className="mt-1 text-xs text-[#8aa0b5]">
@@ -581,7 +581,7 @@ export default function ZonesPage() {
                               assignAddress(address.id, zoneId);
                             }
                           }}
-                          className="min-w-40 rounded-lg border border-[#cfdeeb] bg-white px-3 py-2 text-sm text-[#4f7192] outline-none disabled:opacity-50"
+                          className="min-w-40 rounded-lg border border-[#cfdeeb] bg-white px-3 py-2 text-sm text-[#475569] outline-none disabled:opacity-50"
                         >
                           <option value="">Select zone</option>
 
@@ -593,7 +593,7 @@ export default function ZonesPage() {
                         </select>
 
                         {assigningAddressId === address.id && (
-                          <p className="mt-1 text-xs text-[#7892ad]">
+                          <p className="mt-1 text-xs text-[#64748b]">
                             Saving...
                           </p>
                         )}
@@ -618,11 +618,11 @@ function SummaryCard({
   value: number;
 }) {
   return (
-    <div className="rounded-2xl border border-[#dbe7f3] bg-white p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-[#8ba2b8]">
+    <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-[#64748b]">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-[#17395d]">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-[#0f172a]">{value}</p>
     </div>
   );
 }

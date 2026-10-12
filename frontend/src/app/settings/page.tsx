@@ -206,9 +206,9 @@ export default function SettingsPage() {
         )}
 
         <section className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
-          <div className="overflow-hidden rounded-2xl border border-[#dbe7f3] bg-white">
+          <div className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
             <div className="border-b border-[#e3edf6] px-5 py-4">
-              <h2 className="font-semibold text-[#17395d]">
+              <h2 className="font-semibold text-[#0f172a]">
                 Laundry Services
               </h2>
               <p className="mt-1 text-xs text-[#8098ae]">
@@ -217,17 +217,17 @@ export default function SettingsPage() {
             </div>
 
             {isLoading ? (
-              <p className="p-5 text-sm text-[#7892ad]">
+              <p className="p-5 text-sm text-[#64748b]">
                 Loading services...
               </p>
             ) : services.length === 0 ? (
-              <p className="p-5 text-sm text-[#7892ad]">
+              <p className="p-5 text-sm text-[#64748b]">
                 No services configured.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#7892ad]">
+                  <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
                     <tr>
                       <th className="px-5 py-3">Service</th>
                       <th className="px-5 py-3">Pricing</th>
@@ -240,7 +240,7 @@ export default function SettingsPage() {
                   <tbody className="divide-y divide-[#edf3f8]">
                     {services.map((service) => (
                       <tr key={service.id}>
-                        <td className="px-5 py-4 font-medium text-[#17395d]">
+                        <td className="px-5 py-4 font-medium text-[#0f172a]">
                           {service.name}
                         </td>
 
@@ -250,7 +250,7 @@ export default function SettingsPage() {
                             : "Fixed"}
                         </td>
 
-                        <td className="px-5 py-4 text-[#17395d]">
+                        <td className="px-5 py-4 text-[#0f172a]">
                           ₱{Number(service.rate).toFixed(2)}
                           {service.pricing_type === "per_kg" ? "/kg" : ""}
                         </td>
@@ -287,9 +287,9 @@ export default function SettingsPage() {
           <form
             id="service-form"
             onSubmit={saveService}
-            className="h-fit rounded-2xl border border-[#dbe7f3] bg-white p-5"
+            className="h-fit rounded-2xl border border-[#e2e8f0] bg-white p-5"
           >
-            <h2 className="font-semibold text-[#17395d]">
+            <h2 className="font-semibold text-[#0f172a]">
               {editingId === null ? "Add Service" : "Edit Service"}
             </h2>
 
@@ -354,7 +354,7 @@ export default function SettingsPage() {
                 />
               </label>
 
-              <label className="flex items-center gap-2 text-sm text-[#4f7192]">
+              <label className="flex items-center gap-2 text-sm text-[#475569]">
                 <input
                   type="checkbox"
                   checked={form.is_active}
@@ -374,7 +374,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="rounded-lg bg-[#173f66] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded-lg bg-[#2563eb] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
                 {isSaving
                   ? "Saving..."

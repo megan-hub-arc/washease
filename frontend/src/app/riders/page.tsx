@@ -108,24 +108,24 @@ export default function RidersPage() {
         )}
 
         {success && <p role="status" className="rounded-lg bg-emerald-50 p-4 text-emerald-800">{success}</p>}
-        <form id="rider-contact" onSubmit={saveContact} className="scroll-mt-24 rounded-xl border bg-white p-5"><h2 className="font-semibold">{editingId ? "Edit rider contact" : "Add rider"}</h2><p className="mt-2 text-sm text-slate-600">Record the name and work phone staff use for delivery coordination.</p><div className="mt-4 flex flex-wrap items-end gap-3"><label className="text-sm">Name<input required maxLength={255} disabled={savingContact} value={name} onChange={e => setName(e.target.value)} className="mt-1 block rounded-lg border p-3" /></label><label className="text-sm">Work phone<input type="tel" required maxLength={30} disabled={savingContact} value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 block rounded-lg border p-3" /></label><button disabled={savingContact || savingId !== null} className="rounded-lg bg-[#17395d] px-4 py-3 text-white">{savingContact ? "Saving..." : editingId ? "Save contact" : "Add rider"}</button>{editingId && <button type="button" disabled={savingContact} onClick={() => { setEditingId(null); setName(""); setPhone(""); }} className="rounded-lg border px-4 py-3">Cancel</button>}</div></form>
+        <form id="rider-contact" onSubmit={saveContact} className="scroll-mt-24 rounded-xl border bg-white p-5"><h2 className="font-semibold">{editingId ? "Edit rider contact" : "Add rider"}</h2><p className="mt-2 text-sm text-slate-600">Record the name and work phone staff use for delivery coordination.</p><div className="mt-4 flex flex-wrap items-end gap-3"><label className="text-sm">Name<input required maxLength={255} disabled={savingContact} value={name} onChange={e => setName(e.target.value)} className="mt-1 block rounded-lg border p-3" /></label><label className="text-sm">Work phone<input type="tel" required maxLength={30} disabled={savingContact} value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 block rounded-lg border p-3" /></label><button disabled={savingContact || savingId !== null} className="rounded-lg bg-[#0f172a] px-4 py-3 text-white">{savingContact ? "Saving..." : editingId ? "Save contact" : "Add rider"}</button>{editingId && <button type="button" disabled={savingContact} onClick={() => { setEditingId(null); setName(""); setPhone(""); }} className="rounded-lg border px-4 py-3">Cancel</button>}</div></form>
         <section className="grid gap-4 sm:grid-cols-2">
           <SummaryCard label="Registered Riders" value={riders.length} />
-          <div className="rounded-2xl border border-[#dbe7f3] bg-white p-5">
-            <p className="text-xs font-medium uppercase tracking-wide text-[#8ba2b8]">
+          <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-[#64748b]">
               Assignment
             </p>
-            <p className="mt-2 text-sm text-[#4f7192]">
+            <p className="mt-2 text-sm text-[#475569]">
               Rider assignment is managed from the Deliveries module.
             </p>
           </div>
         </section>
 
-        <div className="flex flex-wrap gap-2">{["All", "Available", "Assigned, awaiting departure", "Out on delivery", "Awaiting return", "Off duty"].map(value => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)} className={`rounded-lg border px-3 py-2 text-sm ${filter === value ? "bg-[#17395d] text-white" : "bg-white"}`}>{value} · {riders.filter(rider => value === "All" || rider.availability === value).length}</button>)}</div>
+        <div className="flex flex-wrap gap-2">{["All", "Available", "Assigned, awaiting departure", "Out on delivery", "Awaiting return", "Off duty"].map(value => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)} className={`rounded-lg border px-3 py-2 text-sm ${filter === value ? "bg-[#0f172a] text-white" : "bg-white"}`}>{value} · {riders.filter(rider => value === "All" || rider.availability === value).length}</button>)}</div>
         <a href="/deliveries" className="inline-block rounded-lg border px-4 py-2 font-semibold">Plan deliveries or confirm rider return →</a>
-        <section className="overflow-hidden rounded-2xl border border-[#dbe7f3] bg-white">
+        <section className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
           <div className="border-b border-[#e3edf6] px-5 py-4">
-            <h2 className="font-semibold text-[#17395d]">
+            <h2 className="font-semibold text-[#0f172a]">
               Delivery Riders
             </h2>
             <p className="mt-1 text-xs text-[#8098ae]">
@@ -134,17 +134,17 @@ export default function RidersPage() {
           </div>
 
           {isLoading ? (
-            <p className="p-5 text-sm text-[#7892ad]">
+            <p className="p-5 text-sm text-[#64748b]">
               Loading riders...
             </p>
           ) : riders.filter(rider => filter === "All" || rider.availability === filter).length === 0 ? (
-            <p className="p-5 text-sm text-[#7892ad]">
+            <p className="p-5 text-sm text-[#64748b]">
               No riders found.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#7892ad]">
+                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
                   <tr>
                     <th className="px-5 py-3">Rider</th>
                     <th className="px-5 py-3">Email</th>
@@ -156,7 +156,7 @@ export default function RidersPage() {
                 <tbody className="divide-y divide-[#edf3f8]">
                   {riders.filter(rider => filter === "All" || rider.availability === filter).map((rider) => (
                     <tr key={rider.id}>
-                      <td className="px-5 py-4 font-medium text-[#17395d]">
+                      <td className="px-5 py-4 font-medium text-[#0f172a]">
                         {rider.name}
                       </td>
 
@@ -195,11 +195,11 @@ function SummaryCard({
   value: number;
 }) {
   return (
-    <div className="rounded-2xl border border-[#dbe7f3] bg-white p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-[#8ba2b8]">
+    <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-[#64748b]">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-[#17395d]">
+      <p className="mt-2 text-2xl font-semibold text-[#0f172a]">
         {value}
       </p>
     </div>

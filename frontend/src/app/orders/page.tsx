@@ -235,11 +235,11 @@ export default function OrdersPage() {
       {syncError && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{syncError}</p>}
       <section>
         <div>
-          <h2 className="text-xl font-bold text-[#17395d]">
+          <h2 className="text-xl font-bold text-[#0f172a]">
             Orders
           </h2>
 
-          <p className="mt-1 text-sm text-[#7892ad]">
+          <p className="mt-1 text-sm text-[#64748b]">
             {orders.length} total{" "}
             {orders.length === 1 ? "order" : "orders"}
           </p>
@@ -247,7 +247,7 @@ export default function OrdersPage() {
 
         <div className="mt-5 flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative xl:w-72">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8ba2b8]">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">
               ⌕
             </span>
 
@@ -259,7 +259,7 @@ export default function OrdersPage() {
                 setSearch(event.target.value)
               }
               placeholder="Order number or customer name"
-              className="w-full rounded-xl border border-[#dbe7f3] bg-white py-2.5 pl-10 pr-4 text-sm text-[#17395d] outline-none transition focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+              className="w-full rounded-xl border border-[#e2e8f0] bg-white py-2.5 pl-10 pr-4 text-sm text-[#0f172a] outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#e7f4fd]"
             />
           </div>
 
@@ -274,8 +274,8 @@ export default function OrdersPage() {
                 }
                 className={`whitespace-nowrap rounded-full border px-3 py-2 text-xs font-medium transition ${
                   selectedFilter === filter
-                    ? "border-[#299cdb] bg-[#edf7ff] text-[#178fd0]"
-                    : "border-[#dbe7f3] bg-white text-[#7892ad] hover:bg-[#f7fbff]"
+                    ? "border-[#2563eb] bg-[#edf7ff] text-[#178fd0]"
+                    : "border-[#e2e8f0] bg-white text-[#64748b] hover:bg-[#f7fbff]"
                 }`}
               >
                 {filter} {filterCount(filter)}
@@ -293,11 +293,11 @@ export default function OrdersPage() {
         <p role="status" className="mt-3 text-sm text-slate-600">{isLoading ? "Loading orders…" : `${filteredOrders.length} matching orders`}</p>
         {!isLoading && filteredOrders.length === 0 && <div className="mt-4 rounded-xl border bg-white p-5"><p>No orders match this search and status.</p><button type="button" onClick={() => { setSearch(""); setSelectedFilter("All"); }} className="mt-3 min-h-11 rounded-lg border px-4 py-2 text-blue-800">Clear search and show all orders</button></div>}
         <div className="mt-4 grid gap-3 xl:hidden">{!isLoading && filteredOrders.map(order => <OrderCard key={order.id} order={order} onManage={() => openOrder(order)} />)}</div>
-        <div className="mt-5 hidden xl:block overflow-hidden rounded-xl border border-[#dbe7f3] bg-white">
+        <div className="mt-5 hidden xl:block overflow-hidden rounded-xl border border-[#e2e8f0] bg-white">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1050px] border-collapse text-left">
               <thead className="bg-[#f8fbfe]">
-                <tr className="border-b border-[#dbe7f3] text-xs font-semibold uppercase tracking-wide text-[#91a8be]">
+                <tr className="border-b border-[#e2e8f0] text-xs font-semibold uppercase tracking-wide text-[#91a8be]">
                   <th scope="col" className="px-5 py-4">
                     Order ID
                   </th>
@@ -341,7 +341,7 @@ export default function OrdersPage() {
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-5 py-12 text-center text-sm text-[#7892ad]"
+                      className="px-5 py-12 text-center text-sm text-[#64748b]"
                     >
                       Loading orders...
                     </td>
@@ -350,7 +350,7 @@ export default function OrdersPage() {
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-5 py-12 text-center text-sm text-[#7892ad]"
+                      className="px-5 py-12 text-center text-sm text-[#64748b]"
                     >
                       No orders found.
                     </td>
@@ -622,18 +622,18 @@ function OrderManagementPanel({
         (order.payment_method ?? "Cash"));
 
   return (
-    <div tabIndex={-1} role="region" aria-label="Manage selected order" id="order-workspace" className="mt-5 scroll-mt-24 rounded-xl border border-[#dbe7f3] bg-white p-5">
+    <div tabIndex={-1} role="region" aria-label="Manage selected order" id="order-workspace" className="mt-5 scroll-mt-24 rounded-xl border border-[#e2e8f0] bg-white p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[#91a8be]">
             Manage order
           </p>
 
-          <h3 className="mt-1 text-lg font-bold text-[#17395d]">
+          <h3 className="mt-1 text-lg font-bold text-[#0f172a]">
             {order.order_number}
           </h3>
 
-          <p className="mt-1 text-sm text-[#7892ad]">
+          <p className="mt-1 text-sm text-[#64748b]">
             {order.user?.name} ·{" "}
             {order.service_type}
           </p>
@@ -642,7 +642,7 @@ function OrderManagementPanel({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-[#dbe7f3] px-3 py-2 text-sm text-[#567795] hover:bg-[#f7fbff]"
+          className="rounded-lg border border-[#e2e8f0] px-3 py-2 text-sm text-[#567795] hover:bg-[#f7fbff]"
         >
           Close
         </button>
@@ -660,7 +660,7 @@ function OrderManagementPanel({
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2" aria-label="Order sections">{[["progress", "Progress"], ["details", "Laundry & customer"], ["delivery", "Delivery"], ["payment", "Payment"]].map(([value, label]) => <button type="button" key={value} aria-pressed={section === value} onClick={() => setSection(value)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${section === value ? "bg-[#17395d] text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
+      <div className="mt-4 flex flex-wrap gap-2" aria-label="Order sections">{[["progress", "Progress"], ["details", "Laundry & customer"], ["delivery", "Delivery"], ["payment", "Payment"]].map(([value, label]) => <button type="button" key={value} aria-pressed={section === value} onClick={() => setSection(value)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${section === value ? "bg-[#0f172a] text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
       <div className="mt-4 rounded-lg bg-blue-50 p-3 text-sm">Current stage: <strong>{order.status}</strong> · Payment: <strong>{order.payment_status}</strong>{nextStatus && <span className="block mt-1">Next stage: {nextStatus}{nextStatus === "Delivered" && order.delivery_run?.status !== "Started" ? " — depart the assigned run in Deliveries first." : ""}</span>}</div>
       <div hidden={section !== "details" && section !== "delivery"} className="mt-5 space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
         <p><strong>Customer instructions:</strong> {order.notes || "No instructions provided"}</p>
@@ -682,7 +682,7 @@ function OrderManagementPanel({
         <div hidden={section !== "progress"}>
           <label
             htmlFor="order-status"
-            className="mb-2 block text-sm font-medium text-[#17395d]"
+            className="mb-2 block text-sm font-medium text-[#0f172a]"
           >
             Order status
           </label>
@@ -693,7 +693,7 @@ function OrderManagementPanel({
             onChange={(event) =>
               setStatus(event.target.value)
             }
-            className="w-full rounded-xl border border-[#dbe7f3] bg-white px-4 py-3 text-sm text-[#17395d] outline-none focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+            className="w-full rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#0f172a] outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-[#e7f4fd]"
           >
             {filters
               .filter((filter) => filter === order.status || filter === nextStatus)
@@ -714,7 +714,7 @@ function OrderManagementPanel({
               isSavingStatus ||
               status === order.status || (status === "Delivered" && order.delivery_run?.status !== "Started")
             }
-            className="mt-3 rounded-xl bg-[#299cdb] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#178fd0] disabled:cursor-not-allowed disabled:bg-[#9dcde8]"
+            className="mt-3 rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#178fd0] disabled:cursor-not-allowed disabled:bg-[#9dcde8]"
           >
             {isSavingStatus
               ? "Updating..."
@@ -726,7 +726,7 @@ function OrderManagementPanel({
           {weightLocked && <p className="mb-3 text-sm text-slate-600">Weight is locked after delivery assignment or payment confirmation.</p>}
           <label
             htmlFor="order-weight"
-            className="mb-2 block text-sm font-medium text-[#17395d]"
+            className="mb-2 block text-sm font-medium text-[#0f172a]"
           >
             Actual laundry weight (kg)
           </label>
@@ -742,14 +742,14 @@ function OrderManagementPanel({
               setWeight(event.target.value)
             }
             placeholder="e.g. 5.60"
-            className="w-full rounded-xl border border-[#dbe7f3] bg-white px-4 py-3 text-sm text-[#17395d] outline-none focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+            className="w-full rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#0f172a] outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-[#e7f4fd]"
           />
 
           <button
             type="button"
             onClick={updateWeight}
             disabled={isSavingWeight || weightLocked}
-            className="mt-3 rounded-xl border border-[#299cdb] bg-white px-4 py-2.5 text-sm font-semibold text-[#178fd0] transition hover:bg-[#edf7ff] disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-3 rounded-xl border border-[#2563eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#178fd0] transition hover:bg-[#edf7ff] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSavingWeight
               ? "Saving..."
@@ -761,7 +761,7 @@ function OrderManagementPanel({
           <p className="mb-3 text-sm text-slate-600">Booking preference: {order.payment_preference || "Not recorded"}. Record the method actually collected.</p>
           <label
             htmlFor="payment-status"
-            className="mb-2 block text-sm font-medium text-[#17395d]"
+            className="mb-2 block text-sm font-medium text-[#0f172a]"
           >
             Payment status
           </label>
@@ -774,7 +774,7 @@ function OrderManagementPanel({
                 event.target.value
               )
             }
-            className="w-full rounded-xl border border-[#dbe7f3] bg-white px-4 py-3 text-sm text-[#17395d] outline-none focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+            className="w-full rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#0f172a] outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-[#e7f4fd]"
           >
             <option value="Unpaid">
               Unpaid
@@ -788,7 +788,7 @@ function OrderManagementPanel({
             <>
               <label
                 htmlFor="payment-method"
-                className="mb-2 mt-3 block text-sm font-medium text-[#17395d]"
+                className="mb-2 mt-3 block text-sm font-medium text-[#0f172a]"
               >
                 Payment method
               </label>
@@ -801,7 +801,7 @@ function OrderManagementPanel({
                     event.target.value
                   )
                 }
-                className="w-full rounded-xl border border-[#dbe7f3] bg-white px-4 py-3 text-sm text-[#17395d] outline-none focus:border-[#299cdb] focus:ring-4 focus:ring-[#e7f4fd]"
+                className="w-full rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#0f172a] outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-[#e7f4fd]"
               >
                 {paymentMethods.map(
                   (method) => (
@@ -840,7 +840,7 @@ function OrderManagementPanel({
               Current status
             </p>
 
-            <p className="mt-1 font-semibold text-[#17395d]">
+            <p className="mt-1 font-semibold text-[#0f172a]">
               {order.status}
             </p>
           </div>
@@ -850,7 +850,7 @@ function OrderManagementPanel({
               Current weight
             </p>
 
-            <p className="mt-1 font-semibold text-[#17395d]">
+            <p className="mt-1 font-semibold text-[#0f172a]">
               {order.weight
                 ? `${order.weight} kg`
                 : "Not recorded"}
@@ -862,7 +862,7 @@ function OrderManagementPanel({
               Current amount
             </p>
 
-            <p className="mt-1 font-semibold text-[#17395d]">
+            <p className="mt-1 font-semibold text-[#0f172a]">
               ₱
               {Number(
                 order.total_amount ?? 0
@@ -878,7 +878,7 @@ function OrderManagementPanel({
               Payment
             </p>
 
-            <p className="mt-1 font-semibold text-[#17395d]">
+            <p className="mt-1 font-semibold text-[#0f172a]">
               {order.payment_status}
               {order.payment_status ===
                 "Paid" &&
@@ -916,7 +916,7 @@ function OrderRow({
   return (
     <tr className="border-b border-[#edf2f7] last:border-b-0 hover:bg-[#fbfdff]">
       <td className="px-5 py-4">
-        <p className="whitespace-nowrap font-semibold text-[#17395d]">
+        <p className="whitespace-nowrap font-semibold text-[#0f172a]">
           {order.order_number}
         </p>
 
@@ -926,7 +926,7 @@ function OrderRow({
       </td>
 
       <td className="px-5 py-4">
-        <p className="font-medium text-[#17395d]">
+        <p className="font-medium text-[#0f172a]">
           {order.user?.name ??
             "Unknown customer"}
         </p>
@@ -973,7 +973,7 @@ function OrderRow({
         </div>
       </td>
 
-      <td className="px-5 py-4 text-right font-semibold text-[#17395d]">
+      <td className="px-5 py-4 text-right font-semibold text-[#0f172a]">
         ₱
         {amount.toLocaleString("en-PH", {
           minimumFractionDigits: 2,
