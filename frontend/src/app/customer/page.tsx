@@ -333,15 +333,13 @@ export default function CustomerPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
+          <div className="flex items-center gap-3">
+            <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white">W</span>
+            <h1 className="text-lg font-bold text-slate-900">
               WashEase
             </h1>
 
-            <p className="text-sm text-slate-500">
-              Customer Portal
-            </p>
           </div>
 
           <button
@@ -354,15 +352,10 @@ export default function CustomerPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-3xl space-y-5 px-4 pt-6 pb-32">
+      <div className="mx-auto max-w-3xl space-y-5 px-5 pt-6 pb-28">
         <section hidden={section !== "Home"}>
-          <p className="text-sm text-slate-500">
-            Your customer workspace
-          </p>
-
-          <h2 className="text-2xl font-bold text-slate-900">
-            Hi, {user?.name.split(" ")[0] ?? "there"}
-          </h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Hi, {user?.name.split(" ")[0] ?? "there"}</h2>
+          <p className="mt-1 text-sm text-slate-500">Here’s the latest on your laundry.</p>
         </section>
 
         {error && (
@@ -377,7 +370,6 @@ export default function CustomerPage() {
           </div>
         )}
 
-        {user && <CustomerLiveUpdates onOrdersUpdated={setOrders} />}
 
         <div hidden={section !== "Account"}>{user && <CustomerAccount user={user} addresses={addresses} onProfileSaved={setUser} onAddressesSaved={(updated) => {
           setAddresses(updated);
@@ -385,7 +377,7 @@ export default function CustomerPage() {
         }} />}</div>
 
         <section hidden={section !== "Home"} className="space-y-5">
-          {featuredOrder ? <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          {featuredOrder ? <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-lg font-semibold">Your active order</h3><span className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">{featuredOrder.delivery_run?.status === "Started" ? "Out on delivery" : featuredOrder.status}</span></div>
             <p className="mt-2 text-sm text-slate-500">{featuredOrder.order_number} · {featuredOrder.service_type}</p>
             <OrderProgress order={featuredOrder} />
@@ -393,8 +385,9 @@ export default function CustomerPage() {
             <button type="button" onClick={() => setSection("Orders")} className="mt-4 min-h-11 w-full rounded-xl border border-blue-200 px-4 text-sm font-semibold text-blue-700">View order details{activeOrders.length > 1 ? ` and ${activeOrders.length - 1} other active orders` : ""} →</button>
           </article> : <article className="rounded-2xl border border-slate-200 bg-white p-6"><h3 className="text-lg font-semibold">Ready for your next laundry day?</h3><p className="mt-2 text-sm leading-6 text-slate-600">No active orders. Book a pickup, or open Orders to review your previous laundry.</p></article>}
           <button type="button" onClick={() => setSection("Book")} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"><WorkspaceIcon name="plus" className="h-5 w-5" />Book a pickup</button>
-          <p className="px-1 text-sm leading-6 text-slate-500">Choose your service and pickup address. Staff will confirm your booking and update its progress.</p>
+
         </section>
+        {user && <CustomerLiveUpdates compact={section === "Home"} onOrdersUpdated={setOrders} />}
         <section hidden={section !== "Book"} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
             <h3 className="text-lg font-semibold text-slate-900">

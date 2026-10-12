@@ -17,6 +17,7 @@ type User = {
 type AdminShellProps = {
   children: ReactNode;
   title: string;
+  headerContent?: ReactNode;
 };
 
 
@@ -47,6 +48,7 @@ const pageGuidance: Record<string, { description: string; next: string; href: st
 export default function AdminShell({
   children,
   title,
+  headerContent,
 }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -216,7 +218,7 @@ export default function AdminShell({
       </aside>
       <div className="lg:pl-60">
         <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 sm:px-8">
-          <div className="flex items-center gap-3"><button type="button" aria-label="Toggle navigation" aria-controls="staff-navigation" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(open => !open)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 lg:hidden"><WorkspaceIcon name="menu" className="h-5 w-5" /></button><h1 className="text-base font-semibold">{title}</h1></div>
+          <div className={`flex items-center gap-3 ${headerContent ? "min-w-0 flex-1 max-w-xl" : ""}`}><button type="button" aria-label="Toggle navigation" aria-controls="staff-navigation" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(open => !open)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 lg:hidden"><WorkspaceIcon name="menu" className="h-5 w-5" /></button><h1 className={headerContent ? "sr-only" : "text-base font-semibold"}>{title}</h1>{headerContent}</div>
           <div className="relative"><button type="button" aria-expanded={accountOpen} aria-controls="staff-account" onClick={() => setAccountOpen(open => !open)} className="flex min-h-11 items-center gap-3 rounded-xl px-2 hover:bg-slate-50"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold">{initials}</span><span className="hidden text-left sm:block"><strong className="block text-sm">{user.name}</strong><span className="text-xs capitalize text-slate-500">{user.role}</span></span><span aria-hidden="true" className="text-slate-500">⌄</span></button>
             {accountOpen && <div id="staff-account" className="absolute right-0 mt-2 w-72 space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-lg"><p className="font-semibold">{user.name}</p><p className="break-all text-sm text-slate-600">{user.email}</p><p className="text-sm text-slate-600">{user.phone || "No phone recorded"}</p><button type="button" onClick={handleSignOut} disabled={isSigningOut} className="min-h-11 w-full rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50">{isSigningOut ? "Signing out…" : "Sign out"}</button></div>}
           </div>

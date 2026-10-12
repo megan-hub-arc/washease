@@ -8,7 +8,7 @@ import { requestedTimeLabel } from "@/lib/requested-times";
 
 type Notice = { id: string; read_at: string | null; created_at: string; data: { order_id: number; order_number: string; message: string } };
 
-export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUpdated: (orders: T[]) => void }) {
+export default function CustomerLiveUpdates<T>({ onOrdersUpdated, compact = false }: { onOrdersUpdated: (orders: T[]) => void; compact?: boolean }) {
   const router = useRouter();
   const previous = useRef<string | null>(null);
   const [updateMessage, setUpdateMessage] = useState("");
@@ -99,15 +99,15 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated }: { onOrdersUp
     if (target) { target.scrollIntoView({ behavior: "smooth", block: "center" }); target.focus({ preventScroll: true }); }
   }
 
-  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+  return <section aria-label="Order notifications" className={compact ? "rounded-xl border border-slate-200 bg-white p-4" : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"}>
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h3 className="text-lg font-semibold text-slate-900">Order updates <span className="text-sm font-normal text-slate-600">{unreadCount} unread</span></h3><p className="mt-1 text-xs text-slate-600">{liveConnected ? "Live updates connected. We also check every 15 seconds." : "Automatic checks every 15 seconds while this page is visible."}{lastSynced ? ` Last checked: ${lastSynced} PHT.` : " Checking for updates…"}</p></div>
-      <button type="button" disabled={loading} onClick={() => { setLoading(true); setRevision(value => value + 1); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-blue-600">Check now</button>
+      <div><h3 className="text-sm font-semibold text-slate-900">Order updates <span className="text-sm font-normal text-slate-600">{unreadCount} unread</span></h3><p className={compact ? "sr-only" : "mt-1 text-xs text-slate-600"}>{liveConnected ? "Live updates connected. We also check every 15 seconds." : "Automatic checks every 15 seconds while this page is visible."}{lastSynced ? ` Last checked: ${lastSynced} PHT.` : " Checking for updates…"}</p></div>
+      <button type="button" disabled={loading} onClick={() => { setLoading(true); setRevision(value => value + 1); }} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-blue-600">Check now</button>
     </div>
     {updateMessage && <div role="status" className="mt-3 flex items-start justify-between gap-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-900"><p>{updateMessage}</p><button type="button" aria-label="Dismiss order update" onClick={() => setUpdateMessage("")} className="px-2 font-semibold">×</button></div>}
     {error && <p role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{error} We retry every 15 seconds.</p>}
     {readError && <p role="alert" className="mt-3 text-sm text-red-700">{readError}</p>}
-    <details className="mt-4">
+    <details className={compact ? "mt-2" : "mt-4"}>
       <summary className="cursor-pointer text-sm font-semibold text-blue-800">View saved notifications</summary>
       {loading ? <p className="mt-3 text-sm text-slate-600">Loading updates…</p> : !notifications.length ? <p className="mt-3 text-sm text-slate-600">No notifications yet. New bookings and staff updates will appear here.</p> : <ul className="mt-3 space-y-3">{notifications.map(notice => <li key={notice.id} className={`rounded-xl border p-4 ${notice.read_at ? "border-slate-200" : "border-blue-200 bg-blue-50"}`}>
         <p className="text-sm font-semibold text-slate-900">{notice.data.order_number}{!notice.read_at && <span className="ml-2 text-xs text-blue-800">Unread</span>}</p><p className="mt-1 text-sm text-slate-700">{notice.data.message}</p><p className="mt-2 text-xs text-slate-600">{requestedTimeLabel(notice.created_at)}</p>
