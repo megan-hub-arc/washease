@@ -396,6 +396,14 @@ function OrderManagementPanel({
   const [section, setSection] = useState("progress");
   const nextStatus = filters[filters.indexOf(order.status) + 1];
   const weightLocked = !!order.delivery_run_id || order.payment_status === "Paid";
+  const deliveryHelp = order.status === "Delivered" ? "Delivery is complete. Review payment if collection is still outstanding."
+    : order.delivery_run?.status === "Started" ? "The assigned rider has departed. Reassignment is locked; update delivery when the customer receives the laundry."
+    : order.status !== "Ready for Delivery" ? "Rider assignment becomes available when laundry is Ready for Delivery. Complete the processing stages first."
+    : Number(order.weight || 0) <= 0 ? "Record a positive laundry weight in Laundry & customer before scheduling."
+    : !order.address?.delivery_zone ? "Assign a delivery zone to this customer’s address before scheduling."
+    : order.delivery_status !== "Scheduled" ? "Open delivery planning and schedule this ready order before assigning a rider."
+    : "This order can be assigned or moved to a planned run before departure.";
+
   const [status, setStatus] =
     useState(order.status);
 
@@ -649,19 +657,19 @@ function OrderManagementPanel({
       </div>
 
       {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
       {message && (
-        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div role="status" className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {message}
         </div>
       )}
 
       <div className="mt-4 flex flex-wrap gap-2" aria-label="Order sections">{[["progress", "Progress"], ["details", "Laundry & customer"], ["delivery", "Delivery"], ["payment", "Payment"]].map(([value, label]) => <button type="button" key={value} aria-pressed={section === value} onClick={() => setSection(value)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${section === value ? "bg-[#0f172a] text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
-      <div className="mt-4 rounded-lg bg-blue-50 p-3 text-sm">Current stage: <strong>{order.status}</strong> · Payment: <strong>{order.payment_status}</strong>{nextStatus && <span className="block mt-1">Next stage: {nextStatus}{nextStatus === "Delivered" && order.delivery_run?.status !== "Started" ? " — depart the assigned run in Deliveries first." : ""}</span>}</div>
+      <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">Current stage: <strong>{order.status}</strong> · Payment: <strong>{order.payment_status}</strong>{nextStatus && <span className="block mt-1">Next stage: {nextStatus}{nextStatus === "Delivered" && order.delivery_run?.status !== "Started" ? " — depart the assigned run in Deliveries first." : ""}</span>}</div>
       <div hidden={section !== "details" && section !== "delivery"} className="mt-5 space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
         <p><strong>Customer instructions:</strong> {order.notes || "No instructions provided"}</p>
         <p><strong>Address:</strong> {order.address?.address || "No address"}</p>
@@ -670,6 +678,7 @@ function OrderManagementPanel({
         <p><strong>Delivery:</strong> {order.delivery_status || "Unscheduled"} · Sequence {order.delivery_sequence ?? "—"}</p>
         <p><strong>Rider:</strong> {order.delivery_run ? `${order.delivery_run.rider.name} · ${order.delivery_run.rider.phone || "No phone"} · Run #${order.delivery_run.id} (${order.delivery_run.status})` : "Not assigned"}</p>
       </div>
+      {section === "delivery" && <p role="status" className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6">{deliveryHelp}</p>}
       {section === "delivery" && <OrderRequestedTimes order={order} onSaved={updated => onUpdated(updated as Order)} />}
       {section === "delivery" && order.status === "Ready for Delivery" && order.delivery_status === "Scheduled" && (!order.delivery_run || order.delivery_run.status === "Planned") && <div className="mt-4"><DeliveryAssignment selectedWeight={Number(order.weight || 0)} orderIds={[order.id]} onAssigned={() => {
         fetch(`${API_URL}/staff/orders`, { headers: { Accept: "application/json", Authorization: `Bearer ${localStorage.getItem("washease_token")}` } })
@@ -718,7 +727,7 @@ function OrderManagementPanel({
           >
             {isSavingStatus
               ? "Updating..."
-              : "Update status"}
+              : `Move to ${status === order.status ? nextStatus || order.status : status}`}
           </button>
         </div>
 
