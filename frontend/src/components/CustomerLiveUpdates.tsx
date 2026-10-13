@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { customerOrderFeedback, type FeedbackOrder } from "@/lib/customer-feedback";
 import { useRouter } from "next/navigation";
 import { connectCustomerLive } from "@/lib/customer-live";
 import { API_URL } from "@/lib/api";
@@ -8,10 +10,10 @@ import { requestedTimeLabel } from "@/lib/requested-times";
 
 type Notice = { id: string; read_at: string | null; created_at: string; data: { order_id: number; order_number: string; message: string } };
 
-export default function CustomerLiveUpdates<T>({ onOrdersUpdated, compact = false }: { onOrdersUpdated: (orders: T[]) => void; compact?: boolean }) {
+export default function CustomerLiveUpdates<T extends FeedbackOrder>({ onOrdersUpdated, onOrderChanges, compact = false }: { onOrdersUpdated: (orders: T[]) => void; onOrderChanges?: (ids: number[]) => void; compact?: boolean }) {
   const router = useRouter();
-  const previous = useRef<string | null>(null);
-  const [updateMessage, setUpdateMessage] = useState("");
+  const previous = useRef<FeedbackOrder[] | null>(null);
+  const [update, setUpdate] = useState<{ message: string; orderIds: number[] } | null>(null);
   const [liveConnected, setLiveConnected] = useState(false);
   const [notifications, setNotifications] = useState<Notice[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -51,9 +53,12 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated, compact = fals
         if (!ordersResponse.ok || !notificationsResponse.ok) throw new Error("Automatic updates could not connect. Previously loaded information is still shown.");
         const [orders, notices] = await Promise.all([ordersResponse.json(), notificationsResponse.json()]);
         if (disposed) return;
-        const signature = JSON.stringify(orders);
-        if (previous.current !== null && previous.current !== signature) setUpdateMessage("Your order information has changed. Open Orders to see the latest status.");
-        previous.current = signature;
+        const feedback = customerOrderFeedback(previous.current, orders as T[]);
+        previous.current = orders as T[];
+        if (feedback) {
+          setUpdate(feedback);
+          onOrderChanges?.(feedback.orderIds);
+        }
         onOrdersUpdated(orders as T[]);
         setNotifications(notices.notifications); setUnreadCount(notices.unread_count); setLastPage(notices.last_page);
         setLastSynced(new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit", second: "2-digit" }).format(new Date()));
@@ -80,7 +85,21 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated, compact = fals
     document.addEventListener("visibilitychange", visible);
     window.addEventListener("online", online);
     return () => { disposed = true; disconnectLive(); controller?.abort(); window.clearInterval(interval); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online); };
-  }, [onOrdersUpdated, page, revision, router]);
+  }, [onOrdersUpdated, onOrderChanges, page, revision, router]);
+
+  useEffect(() => {
+    if (!update) return;
+    const timer = window.setTimeout(() => setUpdate(null), 10000);
+    return () => window.clearTimeout(timer);
+  }, [update]);
+
+  function showUpdatedOrder() {
+    if (!update) return;
+    const id = update.orderIds[0];
+    window.dispatchEvent(new CustomEvent("washease:show-customer-order", { detail: id }));
+    window.setTimeout(() => openOrder(id), 0);
+    setUpdate(null);
+  }
 
   async function markRead(id: string) {
     setReadingId(id); setReadError("");
@@ -104,7 +123,9 @@ export default function CustomerLiveUpdates<T>({ onOrdersUpdated, compact = fals
       <div><h3 className="text-sm font-semibold text-slate-900">Order updates <span className="text-sm font-normal text-slate-600">{unreadCount} unread</span></h3><p className={compact ? "sr-only" : "mt-1 text-xs text-slate-600"}>{liveConnected ? "Live updates connected. We also check every 15 seconds." : "Automatic checks every 15 seconds while this page is visible."}{lastSynced ? ` Last checked: ${lastSynced} PHT.` : " Checking for updates…"}</p></div>
       <button type="button" disabled={loading} onClick={() => { setLoading(true); setRevision(value => value + 1); }} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-blue-600">Check now</button>
     </div>
-    {updateMessage && <div role="status" className="mt-3 flex items-start justify-between gap-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-900"><p>{updateMessage}</p><button type="button" aria-label="Dismiss order update" onClick={() => setUpdateMessage("")} className="px-2 font-semibold">×</button></div>}
+    {update && createPortal(<aside aria-label="Latest order update" className="fixed inset-x-4 top-24 z-50 mx-auto max-w-md rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl sm:left-auto sm:right-6 sm:mx-0 sm:w-96">
+      <div className="flex items-start gap-3"><span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800">✓</span><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-900">Order updated</p><p role="status" aria-live="polite" aria-atomic="true" className="mt-1 break-words text-sm text-slate-700">{update.message}</p><button type="button" onClick={showUpdatedOrder} className="mt-2 min-h-11 rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">View order →</button></div><button type="button" aria-label="Dismiss order update" onClick={() => setUpdate(null)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xl text-slate-600 hover:bg-slate-50">×</button></div>
+    </aside>, document.body)}
     {error && <p role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{error} We retry every 15 seconds.</p>}
     {readError && <p role="alert" className="mt-3 text-sm text-red-700">{readError}</p>}
     <details className={compact ? "mt-2" : "mt-4"}>

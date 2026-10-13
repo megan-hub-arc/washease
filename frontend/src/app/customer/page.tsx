@@ -55,6 +55,12 @@ export default function CustomerPage() {
   const router = useRouter();
 
   const [section, setSection] = useState("Home");
+  const [highlightedOrders, setHighlightedOrders] = useState<number[]>([]);
+  useEffect(() => {
+    if (!highlightedOrders.length) return;
+    const timer = window.setTimeout(() => setHighlightedOrders([]), 10000);
+    return () => window.clearTimeout(timer);
+  }, [highlightedOrders]);
   const [user, setUser] = useState<User | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -377,7 +383,7 @@ export default function CustomerPage() {
         }} />}</div>
 
         <section hidden={section !== "Home"} className="space-y-5">
-          {featuredOrder ? <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          {featuredOrder ? <article className={`rounded-xl border bg-white p-5 shadow-sm ${highlightedOrders.includes(featuredOrder.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
             <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-lg font-semibold">Your active order</h3><span className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">{featuredOrder.delivery_run?.status === "Started" ? "Out on delivery" : featuredOrder.status}</span></div>
             <p className="mt-2 text-sm text-slate-500">{featuredOrder.order_number} · {featuredOrder.service_type}</p>
             <OrderProgress order={featuredOrder} />
@@ -387,7 +393,7 @@ export default function CustomerPage() {
           <button type="button" onClick={() => setSection("Book")} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"><WorkspaceIcon name="plus" className="h-5 w-5" />Book a pickup</button>
 
         </section>
-        {user && <CustomerLiveUpdates compact={section === "Home"} onOrdersUpdated={setOrders} />}
+        {user && <CustomerLiveUpdates compact={section === "Home"} onOrdersUpdated={setOrders} onOrderChanges={setHighlightedOrders} />}
         <section hidden={section !== "Book"} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
             <h3 className="text-lg font-semibold text-slate-900">
@@ -587,7 +593,7 @@ export default function CustomerPage() {
                   key={order.id}
                   id={`customer-order-${order.id}`}
                   tabIndex={-1}
-                  className="scroll-mt-24 focus:outline-2 focus:outline-blue-600 space-y-4 rounded-xl border border-slate-200 p-4"
+                  className={`scroll-mt-24 focus:outline-2 focus:outline-blue-600 space-y-4 rounded-xl border p-4 ${highlightedOrders.includes(order.id) ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200"}`}
                 >
                   <div>
                     <p className="font-semibold text-slate-900">
