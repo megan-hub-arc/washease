@@ -44,3 +44,52 @@ Production secret/history inspection, deployment configuration, remote HTTPS
 verification, proxy/cache validation, browser security review, broader input and
 output escaping checks, failure recovery and backup restoration. Passing these
 unit/feature tests is not a complete penetration test or a security certification.
+
+## Batch 35: deployment configuration preparation
+
+API token expiration now defaults to 480 minutes from issuance (not idle time),
+configurable with SANCTUM_EXPIRATION_MINUTES. Previously issued tokens older
+than the window will also require signing in again. Logout still revokes the
+current token. Expired token row cleanup remains a deployment scheduler task.
+
+CORS defaults to http://localhost:3000 and http://127.0.0.1:3000 with Bearer
+Authorization headers and no cookie credentials. Reverb defaults to localhost
+and 127.0.0.1 hostnames. Neither accepts wildcard origin settings. These are
+browser-origin controls, not substitutes for authentication or record ownership.
+
+Proxy configuration defaults to no trusted proxies. TRUSTED_PROXIES accepts
+verified IP addresses/CIDRs; wildcard and REMOTE_ADDR shortcuts are discarded.
+Only forwarded IP, port and protocol are trusted from that list; forwarded host
+is excluded. Hosting must restrict direct origin access and sanitize forwarding
+headers. Real hosting-specific IP/proxy behavior still needs remote testing.
+
+### Local application after applying the patch
+
+Run `php artisan config:clear` and restart any long-running Reverb and queue
+workers so they load the settings. Do not replace the existing .env file or
+regenerate its APP_KEY. localhost and 127.0.0.1 browser origins work by default.
+
+### Remote tunnel or production configuration
+
+In backend .env set CORS_ALLOWED_ORIGINS to the exact frontend URL including
+https://, and REVERB_ALLOWED_ORIGINS to that frontend hostname without scheme,
+path or port. Use comma-separated entries if local access must also be allowed.
+Use the frontend URL, not the API URL, for both browser-origin settings.
+When a quick tunnel address changes these settings must be updated again.
+
+For actual hosting also configure APP_ENV=production, APP_DEBUG=false,
+APP_URL to the HTTPS API origin and FRONTEND_URL to the HTTPS frontend origin.
+Set NEXT_PUBLIC_API_URL to the HTTPS API URL ending in /api before building
+Next.js. Reverb browser connections use HTTPS/wss with the public host/port.
+Keep REVERB_APP_SECRET and database/mail passwords exclusively in backend secrets.
+Set TRUSTED_PROXIES only from the hosting provider's verified network design.
+Keep a persistent cache (database or Redis) for limits and shared workers, then
+cache configuration after verifying all settings. HTTPS, hosting provisioning,
+queues, scheduler, secrets, backup restoration and production smoke tests remain
+pending. This patch does not deploy the system.
+
+Assistant verification: 67 tests, 511 assertions passed; Pint passed. The new
+ProductionSecurityTest covers token expiry, allowed/rejected CORS preflight,
+allowed/rejected Reverb origins, and trusted/untrusted forwarded IP/protocol/host.
+Re-run on the user's PHP 8.3 installation and verify local browser login plus
+live updates before committing. Assistant runtime used PHP 8.5.
