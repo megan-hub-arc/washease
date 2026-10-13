@@ -235,10 +235,6 @@ export default function OrdersPage() {
       {syncError && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{syncError}</p>}
       <section>
         <div>
-          <h2 className="text-xl font-bold text-[#0f172a]">
-            Orders
-          </h2>
-
           <p className="mt-1 text-sm text-[#64748b]">
             {orders.length} total{" "}
             {orders.length === 1 ? "order" : "orders"}
@@ -668,7 +664,7 @@ function OrderManagementPanel({
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2" aria-label="Order sections">{[["progress", "Progress"], ["details", "Laundry & customer"], ["delivery", "Delivery"], ["payment", "Payment"]].map(([value, label]) => <button type="button" key={value} aria-pressed={section === value} onClick={() => setSection(value)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${section === value ? "bg-[#0f172a] text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
+      <div className="mt-4 flex flex-wrap gap-2" aria-label="Order sections">{[["progress", "Progress"], ["details", "Laundry & customer"], ["delivery", "Delivery"], ["payment", "Payment"]].map(([value, label]) => <button type="button" key={value} aria-pressed={section === value} onClick={() => setSection(value)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${section === value ? "bg-blue-600 text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
       <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">Current stage: <strong>{order.status}</strong> · Payment: <strong>{order.payment_status}</strong>{nextStatus && <span className="block mt-1">Next stage: {nextStatus}{nextStatus === "Delivered" && order.delivery_run?.status !== "Started" ? " — depart the assigned run in Deliveries first." : ""}</span>}</div>
       <div hidden={section !== "details" && section !== "delivery"} className="mt-5 space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
         <p><strong>Customer instructions:</strong> {order.notes || "No instructions provided"}</p>
@@ -723,7 +719,7 @@ function OrderManagementPanel({
               isSavingStatus ||
               status === order.status || (status === "Delivered" && order.delivery_run?.status !== "Started")
             }
-            className="mt-3 rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#178fd0] disabled:cursor-not-allowed disabled:bg-[#9dcde8]"
+            className="mt-3 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#178fd0] disabled:cursor-not-allowed disabled:bg-[#9dcde8]"
           >
             {isSavingStatus
               ? "Updating..."

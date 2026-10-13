@@ -113,15 +113,8 @@ export default function CustomersPage() {
   return (
     <AdminShell title="Customers">
       <div className="mx-auto max-w-7xl space-y-6">
-        <section>
-          <p className="text-sm text-[#6f89a3]">
-            View registered WashEase customers, their saved addresses, and
-            order activity.
-          </p>
-        </section>
-
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+{error && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -138,12 +131,12 @@ export default function CustomersPage() {
         </section>
 
         <section className="rounded-2xl border border-[#e2e8f0] bg-white">
-          <div className="flex flex-col gap-4 border-b border-[#e3edf6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-semibold text-[#0f172a]">
                 Customer Records
               </h2>
-              <p className="mt-1 text-xs text-[#8098ae]">
+              <p className="mt-1 text-xs text-slate-600">
                 Registered customer accounts and activity.
               </p>
             </div>
@@ -153,7 +146,7 @@ export default function CustomersPage() {
               onChange={(event) => setSearch(event.target.value)}
               aria-label="Search customers by name, email or phone"
               placeholder="Search customer..."
-              className="w-full rounded-lg border border-[#cfdeeb] px-3 py-2 text-sm outline-none focus:border-[#68a9d7] sm:max-w-xs"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-600 sm:max-w-xs"
             />
           </div>
 
@@ -168,17 +161,17 @@ export default function CustomersPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-[#64748b]">
                   <tr>
-                    <th className="px-5 py-3">Customer</th>
-                    <th className="px-5 py-3">Phone</th>
-                    <th className="px-5 py-3">Addresses</th>
-                    <th className="px-5 py-3">Orders</th>
-                    <th className="px-5 py-3">Saved address</th><th className="px-5 py-3">Action</th>
+                    <th scope="col" className="px-5 py-3">Customer</th>
+                    <th scope="col" className="px-5 py-3">Phone</th>
+                    <th scope="col" className="px-5 py-3">Addresses</th>
+                    <th scope="col" className="px-5 py-3">Orders</th>
+                    <th scope="col" className="px-5 py-3">Saved address</th><th scope="col" className="px-5 py-3">Action</th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-[#edf3f8]">
+                <tbody className="divide-y divide-slate-100">
                   {filteredCustomers.map((customer) => {
                     const firstAddress = customer.addresses[0];
 
@@ -188,20 +181,20 @@ export default function CustomersPage() {
                           <p className="font-medium text-[#0f172a]">
                             {customer.name}
                           </p>
-                          <p className="mt-1 text-xs text-[#8aa0b5]">
+                          <p className="mt-1 text-xs text-slate-500">
                             {customer.email || "No email provided"}
                           </p>
                         </td>
 
-                        <td className="px-5 py-4 text-[#5e7891]">
+                        <td className="px-5 py-4 text-slate-600">
                           {customer.phone ?? "—"}
                         </td>
 
-                        <td className="px-5 py-4 text-[#5e7891]">
+                        <td className="px-5 py-4 text-slate-600">
                           {customer.addresses.length}
                         </td>
 
-                        <td className="px-5 py-4 text-[#5e7891]">
+                        <td className="px-5 py-4 text-slate-600">
                           {customer.orders.length}
                         </td>
 
@@ -211,13 +204,13 @@ export default function CustomersPage() {
                               <p className="max-w-sm text-[#475569]">
                                 {firstAddress.address}
                               </p>
-                              <p className="mt-1 text-xs text-[#8aa0b5]">
+                              <p className="mt-1 text-xs text-slate-500">
                                 {firstAddress.delivery_zone?.name ??
                                   "Unassigned zone"}
                               </p>
                             </>
                           ) : (
-                            <span className="text-[#8aa0b5]">
+                            <span className="text-slate-500">
                               No saved address
                             </span>
                           )}

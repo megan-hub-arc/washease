@@ -188,30 +188,25 @@ export default function SettingsPage() {
   return (
     <AdminShell title="Settings">
       <div className="mx-auto max-w-7xl space-y-6">
-        <p className="text-sm text-[#6f89a3]">
-          Configure laundry services and pricing used when customers create
-          bookings.
-        </p>
-
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+{error && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {success}
           </div>
         )}
 
         <section className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
           <div className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
-            <div className="border-b border-[#e3edf6] px-5 py-4">
+            <div className="border-b border-slate-200 px-5 py-4">
               <h2 className="font-semibold text-[#0f172a]">
                 Laundry Services
               </h2>
-              <p className="mt-1 text-xs text-[#8098ae]">
+              <p className="mt-1 text-xs text-slate-600">
                 Active services are available in customer booking.
               </p>
             </div>
@@ -227,24 +222,24 @@ export default function SettingsPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-[#64748b]">
                     <tr>
-                      <th className="px-5 py-3">Service</th>
-                      <th className="px-5 py-3">Pricing</th>
-                      <th className="px-5 py-3">Rate</th>
-                      <th className="px-5 py-3">Status</th>
-                      <th className="px-5 py-3 text-right">Action</th>
+                      <th scope="col" className="px-5 py-3">Service</th>
+                      <th scope="col" className="px-5 py-3">Pricing</th>
+                      <th scope="col" className="px-5 py-3">Rate</th>
+                      <th scope="col" className="px-5 py-3">Status</th>
+                      <th scope="col" className="px-5 py-3 text-right">Action</th>
                     </tr>
                   </thead>
 
-                  <tbody className="divide-y divide-[#edf3f8]">
+                  <tbody className="divide-y divide-slate-100">
                     {services.map((service) => (
                       <tr key={service.id}>
                         <td className="px-5 py-4 font-medium text-[#0f172a]">
                           {service.name}
                         </td>
 
-                        <td className="px-5 py-4 text-[#5e7891]">
+                        <td className="px-5 py-4 text-slate-600">
                           {service.pricing_type === "per_kg"
                             ? "Per kilogram"
                             : "Fixed"}
@@ -271,7 +266,7 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={() => { editService(service); document.getElementById("service-form")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
-                            className="rounded-lg border border-[#cfe0ef] px-3 py-1.5 text-xs font-medium text-[#28618e]"
+                            className="rounded-lg border border-[#cfe0ef] px-3 py-1.5 text-xs font-medium text-blue-700"
                           >
                             Edit
                           </button>
@@ -295,7 +290,7 @@ export default function SettingsPage() {
 
             <div className="mt-5 space-y-4">
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-[#5e7891]">
+                <span className="mb-1.5 block text-xs font-medium text-slate-600">
                   Service name
                 </span>
 
@@ -308,12 +303,12 @@ export default function SettingsPage() {
                     }))
                   }
                   placeholder="Example: Wash & Dry"
-                  className="w-full rounded-lg border border-[#cfdeeb] px-3 py-2.5 text-sm outline-none"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-[#5e7891]">
+                <span className="mb-1.5 block text-xs font-medium text-slate-600">
                   Pricing type
                 </span>
 
@@ -327,7 +322,7 @@ export default function SettingsPage() {
                         | "fixed",
                     }))
                   }
-                  className="w-full rounded-lg border border-[#cfdeeb] bg-white px-3 py-2.5 text-sm"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"
                 >
                   <option value="per_kg">Per kilogram</option>
                   <option value="fixed">Fixed price</option>
@@ -335,7 +330,7 @@ export default function SettingsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-[#5e7891]">
+                <span className="mb-1.5 block text-xs font-medium text-slate-600">
                   {form.pricing_type === "per_kg" ? "Rate per kilogram (₱)" : "Price per order (₱)"}
                 </span>
 
@@ -350,7 +345,7 @@ export default function SettingsPage() {
                       rate: event.target.value,
                     }))
                   }
-                  className="w-full rounded-lg border border-[#cfdeeb] px-3 py-2.5 text-sm outline-none"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none"
                 />
               </label>
 
@@ -374,7 +369,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="rounded-lg bg-[#2563eb] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
                 {isSaving
                   ? "Saving..."
@@ -387,7 +382,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-lg border border-[#cfdeeb] px-4 py-2.5 text-sm text-[#5e7891]"
+                  className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm text-slate-600"
                 >
                   Cancel
                 </button>

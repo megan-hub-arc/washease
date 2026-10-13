@@ -94,21 +94,14 @@ export default function RidersPage() {
   return (
     <AdminShell title="Riders">
       <div className="mx-auto max-w-7xl space-y-6">
-        <section>
-          <p className="text-sm text-[#6f89a3]">
-            View delivery personnel available for staff-managed rider
-            assignment.
-          </p>
-        </section>
-
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+{error && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {success && <p role="status" className="rounded-lg bg-emerald-50 p-4 text-emerald-800">{success}</p>}
-        <form id="rider-contact" onSubmit={saveContact} className="scroll-mt-24 rounded-xl border bg-white p-5"><h2 className="font-semibold">{editingId ? "Edit rider contact" : "Add rider"}</h2><p className="mt-2 text-sm text-slate-600">Record the name and work phone staff use for delivery coordination.</p><div className="mt-4 flex flex-wrap items-end gap-3"><label className="text-sm">Name<input required maxLength={255} disabled={savingContact} value={name} onChange={e => setName(e.target.value)} className="mt-1 block rounded-lg border p-3" /></label><label className="text-sm">Work phone<input type="tel" required maxLength={30} disabled={savingContact} value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 block rounded-lg border p-3" /></label><button disabled={savingContact || savingId !== null} className="rounded-lg bg-[#0f172a] px-4 py-3 text-white">{savingContact ? "Saving..." : editingId ? "Save contact" : "Add rider"}</button>{editingId && <button type="button" disabled={savingContact} onClick={() => { setEditingId(null); setName(""); setPhone(""); }} className="rounded-lg border px-4 py-3">Cancel</button>}</div></form>
+        <details className="rounded-2xl border border-slate-200 bg-white p-5" open={editingId !== null ? true : undefined}><summary className="cursor-pointer font-semibold text-blue-700">{editingId ? "Edit rider contact" : "Add a rider"}</summary><form id="rider-contact" onSubmit={saveContact} className="scroll-mt-24 pt-4"><h2 className="font-semibold">{editingId ? "Edit rider contact" : "Add rider"}</h2><p className="mt-2 text-sm text-slate-600">Record the name and work phone staff use for delivery coordination.</p><div className="mt-4 flex flex-wrap items-end gap-3"><label className="text-sm">Name<input required maxLength={255} disabled={savingContact} value={name} onChange={e => setName(e.target.value)} className="mt-1 block rounded-lg border p-3" /></label><label className="text-sm">Work phone<input type="tel" required maxLength={30} disabled={savingContact} value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 block rounded-lg border p-3" /></label><button disabled={savingContact || savingId !== null} className="rounded-lg bg-blue-600 px-4 py-3 text-white">{savingContact ? "Saving..." : editingId ? "Save contact" : "Add rider"}</button>{editingId && <button type="button" disabled={savingContact} onClick={() => { setEditingId(null); setName(""); setPhone(""); }} className="rounded-lg border px-4 py-3">Cancel</button>}</div></form></details>
         <section className="grid gap-4 sm:grid-cols-2">
           <SummaryCard label="Registered Riders" value={riders.length} />
           <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
@@ -121,14 +114,14 @@ export default function RidersPage() {
           </div>
         </section>
 
-        <div className="flex flex-wrap gap-2">{["All", "Available", "Assigned, awaiting departure", "Out on delivery", "Awaiting return", "Off duty"].map(value => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)} className={`rounded-lg border px-3 py-2 text-sm ${filter === value ? "bg-[#0f172a] text-white" : "bg-white"}`}>{value} · {riders.filter(rider => value === "All" || rider.availability === value).length}</button>)}</div>
+        <div className="flex flex-wrap gap-2">{["All", "Available", "Assigned, awaiting departure", "Out on delivery", "Awaiting return", "Off duty"].map(value => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)} className={`rounded-lg border px-3 py-2 text-sm ${filter === value ? "bg-blue-600 text-white" : "bg-white"}`}>{value} · {riders.filter(rider => value === "All" || rider.availability === value).length}</button>)}</div>
         <a href="/deliveries" className="inline-block rounded-lg border px-4 py-2 font-semibold">Plan deliveries or confirm rider return →</a>
         <section className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
-          <div className="border-b border-[#e3edf6] px-5 py-4">
+          <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="font-semibold text-[#0f172a]">
               Delivery Riders
             </h2>
-            <p className="mt-1 text-xs text-[#8098ae]">
+            <p className="mt-1 text-xs text-slate-600">
               Personnel available when creating delivery runs.
             </p>
           </div>
@@ -144,32 +137,32 @@ export default function RidersPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-[#64748b]">
                   <tr>
-                    <th className="px-5 py-3">Rider</th>
-                    <th className="px-5 py-3">Email</th>
-                    <th className="px-5 py-3">Phone</th>
-                    <th className="px-5 py-3">Availability / run</th><th className="px-5 py-3">Duty</th>
+                    <th scope="col" className="px-5 py-3">Rider</th>
+                    <th scope="col" className="px-5 py-3">Email</th>
+                    <th scope="col" className="px-5 py-3">Phone</th>
+                    <th scope="col" className="px-5 py-3">Availability / run</th><th scope="col" className="px-5 py-3">Duty</th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-[#edf3f8]">
+                <tbody className="divide-y divide-slate-100">
                   {riders.filter(rider => filter === "All" || rider.availability === filter).map((rider) => (
                     <tr key={rider.id}>
                       <td className="px-5 py-4 font-medium text-[#0f172a]">
                         {rider.name}
                       </td>
 
-                      <td className="px-5 py-4 text-[#5e7891]">
+                      <td className="px-5 py-4 text-slate-600">
                         {rider.email || "Not provided"}
                       </td>
 
-                      <td className="px-5 py-4 text-[#5e7891]">
+                      <td className="px-5 py-4 text-slate-600">
                         {rider.phone ?? "—"}
                       </td>
 
                       <td className="px-5 py-4">
-                        <span className="rounded-full bg-[#e8f3fc] px-2.5 py-1 text-xs font-medium text-[#28618e]">
+                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
                           {rider.availability}
                         </span>
                         <p className="mt-2 text-xs">{rider.current_run ? `Current run #${rider.current_run.id}` : rider.planned_run_ids.length ? `Planned runs: ${rider.planned_run_ids.join(", ")}` : "No active run"}</p>

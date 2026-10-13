@@ -119,13 +119,8 @@ export default function PaymentsPage() {
   return (
     <AdminShell title="Payments">
       <div className="mx-auto max-w-7xl space-y-6">
-        <p className="text-sm text-[#6f89a3]">
-          Review payment status, payment methods, and recorded revenue.
-          Record a collection only after confirming the money was received.
-        </p>
-
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+{error && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -142,12 +137,12 @@ export default function PaymentsPage() {
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
-          <div className="flex flex-col gap-4 border-b border-[#e3edf6] px-5 py-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="font-semibold text-[#0f172a]">
                 Payment Ledger
               </h2>
-              <p className="mt-1 text-xs text-[#8098ae]">
+              <p className="mt-1 text-xs text-slate-600">
                 Payment records from customer orders.
               </p>
             </div>
@@ -158,14 +153,14 @@ export default function PaymentsPage() {
                 onChange={(event) => setSearch(event.target.value)}
                 aria-label="Search payments by order, customer or method"
                 placeholder="Search payment..."
-                className="rounded-lg border border-[#cfdeeb] px-3 py-2 text-sm outline-none"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none"
               />
 
               <select
                 aria-label="Filter payments by status"
                 value={filter}
                 onChange={(event) => setFilter(event.target.value)}
-                className="rounded-lg border border-[#cfdeeb] bg-white px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
               >
                 <option value="All">All payments</option>
                 <option value="Paid">Paid</option>
@@ -185,25 +180,25 @@ export default function PaymentsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#f7fafd] text-xs uppercase tracking-wide text-[#64748b]">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-[#64748b]">
                   <tr>
-                    <th className="px-5 py-3">Order</th>
-                    <th className="px-5 py-3">Customer</th>
-                    <th className="px-5 py-3">Amount</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Method</th>
-                    <th className="px-5 py-3">Paid At</th><th className="px-5 py-3">Action</th>
+                    <th scope="col" className="px-5 py-3">Order</th>
+                    <th scope="col" className="px-5 py-3">Customer</th>
+                    <th scope="col" className="px-5 py-3">Amount</th>
+                    <th scope="col" className="px-5 py-3">Status</th>
+                    <th scope="col" className="px-5 py-3">Method</th>
+                    <th scope="col" className="px-5 py-3">Paid At</th><th scope="col" className="px-5 py-3">Action</th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-[#edf3f8]">
+                <tbody className="divide-y divide-slate-100">
                   {filteredOrders.map((order) => (
                     <tr key={order.id}>
                       <td className="px-5 py-4 font-medium text-[#0f172a]">
                         {order.order_number}
                       </td>
 
-                      <td className="px-5 py-4 text-[#5e7891]">
+                      <td className="px-5 py-4 text-slate-600">
                         {order.user?.name ?? "Unknown customer"}
                       </td>
 
@@ -223,16 +218,16 @@ export default function PaymentsPage() {
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 text-[#5e7891]">
+                      <td className="px-5 py-4 text-slate-600">
                         {order.payment_method ?? "—"}
                       </td>
 
-                      <td className="px-5 py-4 text-[#5e7891]">
+                      <td className="px-5 py-4 text-slate-600">
                         {order.paid_at
                           ? new Date(order.paid_at).toLocaleString()
                           : "—"}
                       </td>
-                      <td className="px-5 py-4"><div className="flex flex-col items-start gap-2">{order.payment_status === "Unpaid" && <button disabled={saving || Number(order.total_amount || 0) <= 0} onClick={() => { setCollecting(order); setMethod(""); setError(""); setSuccess(""); setTimeout(() => document.getElementById("collection-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }} className="rounded-lg bg-[#0f172a] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Record collection</button>}<a className="text-sm font-semibold underline" href={`/orders?order=${order.id}`}>Open order →</a>{order.payment_status === "Unpaid" && Number(order.total_amount || 0) <= 0 && <span className="text-xs text-slate-600">Record weight and price in Orders first.</span>}</div></td>
+                      <td className="px-5 py-4"><div className="flex flex-col items-start gap-2">{order.payment_status === "Unpaid" && <button disabled={saving || Number(order.total_amount || 0) <= 0} onClick={() => { setCollecting(order); setMethod(""); setError(""); setSuccess(""); setTimeout(() => document.getElementById("collection-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Record collection</button>}<a className="text-sm font-semibold underline" href={`/orders?order=${order.id}`}>Open order →</a>{order.payment_status === "Unpaid" && Number(order.total_amount || 0) <= 0 && <span className="text-xs text-slate-600">Record weight and price in Orders first.</span>}</div></td>
                     </tr>
                   ))}
                 </tbody>

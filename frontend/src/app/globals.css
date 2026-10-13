@@ -58,3 +58,31 @@ a {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* Shared staff controls: touch targets and table feedback across operational pages. */
+.staff-workspace #main-content :is(button, select, input:not([type="checkbox"]):not([type="radio"])) {
+  min-height: 44px;
+}
+.staff-workspace #main-content :is(input, select, textarea) {
+  max-width: 100%;
+}
+.staff-workspace #main-content button {
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.staff-workspace #main-content button:disabled {
+  opacity: 0.55;
+}
+.staff-workspace #main-content tbody tr:hover {
+  background-color: #f8fafc;
+}
+.staff-workspace #main-content th {
+  white-space: nowrap;
+}
+.staff-workspace #main-content summary {
+  min-height: 44px;
+  display: list-item;
+  align-content: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .staff-workspace :is(button, aside) { transition: none; }
+}
