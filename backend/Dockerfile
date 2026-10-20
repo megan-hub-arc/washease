@@ -2,7 +2,7 @@ FROM php:8.5-apache-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor libicu-dev libzip-dev libonig-dev unzip \
-    && docker-php-ext-install -j2 pdo_mysql mbstring intl zip pcntl opcache \
+    && docker-php-ext-install -j2 pdo_mysql mbstring intl zip pcntl \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
