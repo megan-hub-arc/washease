@@ -22,7 +22,7 @@ test('status and departure updates identify the changed order with readable feed
 });
 test('payment and requested time changes produce feedback without using notification read state', () => {
   assert.equal(feedback([order], [{ ...order, payment_status: 'Paid' }]).message, 'WS-DEMO: payment paid.');
-  assert.equal(feedback([order], [{ ...order, delivery_requested_at: '2026-10-15T14:00:00+08:00' }]).message, 'WS-DEMO: order details updated.');
+  assert.match(feedback([order], [{ ...order, delivery_requested_at: '2026-10-15T14:00:00+08:00' }]).message, /requested delivery:.*Oct 15, 2026.*2:00.*PHT/);
   assert.equal(feedback([order], [{ ...order, updated_at: 'new', unread_count: 9 }]), null);
 });
 test('new bookings and simultaneous updates are summarized', () => {
@@ -30,4 +30,13 @@ test('new bookings and simultaneous updates are summarized', () => {
   const result = feedback([order], [{ ...order, status: 'Processing' }, { ...order, id: 2 }]);
   assert.equal(result.message, '2 orders updated. Open Orders to see the changes.');
   assert.equal(JSON.stringify(result.orderIds), '[1,2]');
+});
+
+test('weighing and schedule feedback includes the actual values and cleared times', () => {
+  const weighed = { ...order, weight: '3.00', total_amount: '105.00' };
+  assert.equal(feedback([order], [weighed]).message, 'WS-DEMO: weight 3.00 kg; total ₱105.00.');
+  assert.equal(feedback([weighed], [weighed]), null);
+  const changed = feedback([weighed], [{ ...weighed, weight: '4.00', total_amount: '140.00', pickup_requested_at: '2026-10-22T01:00:00Z' }]);
+  assert.match(changed.message, /4.00 kg; total ₱140.00.*requested pickup:.*9:00.*PHT/);
+  assert.match(feedback([{ ...order, delivery_requested_at: '2026-10-22T01:00:00Z' }], [order]).message, /requested delivery: Not set/);
 });

@@ -1,5 +1,9 @@
 "use client";
 
+import LaundryIllustration from "@/components/LaundryIllustration";
+
+import PasswordInput from "@/components/PasswordInput";
+
 import Link from "next/link";
 import { API_URL } from "@/lib/api";
 import { FormEvent, useState } from "react";
@@ -99,18 +103,16 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-12">
+    <main className="min-h-screen laundry-background flex items-center justify-center px-6 py-12">
       <section className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-sm">
-            W
-          </div>
+          <LaundryIllustration className="mx-auto mb-3 h-32 w-48" />
 
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Welcome to WashEase
           </h1>
 
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Laundry pickup and delivery made simple.
           </p>
         </div>
@@ -148,10 +150,9 @@ export default function Home() {
                 Password
               </label>
 
-              <input
+              <PasswordInput
                 autoComplete="current-password"
                 id="password"
-                type="password"
                 value={password}
                 onChange={(event) =>
                   setPassword(event.target.value)
@@ -181,7 +182,7 @@ export default function Home() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          <p className="mt-6 text-center text-sm text-slate-600">
             New to WashEase?{" "}
             <Link href="/register" className="font-semibold text-blue-600 underline hover:text-blue-700">
               Create an account

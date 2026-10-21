@@ -1,5 +1,7 @@
 "use client";
 
+import PasswordInput from "@/components/PasswordInput";
+
 import { useState, type FormEvent } from "react";
 import { API_URL } from "@/lib/api";
 
@@ -83,9 +85,9 @@ export default function CustomerAccount({ user, addresses, onProfileSaved, onAdd
       </div>
       <p className="text-sm text-slate-600">Keep an email or phone number so you can sign in. Leave the password fields blank to keep your current password.</p>
       <div className="grid gap-4 md:grid-cols-3">
-        <label className="text-sm font-medium text-slate-700">Current password<input type="password" autoComplete="current-password" required={!!passwords.password} className={inputClass} disabled={busy} value={passwords.current_password} onChange={event => setPasswords({ ...passwords, current_password: event.target.value })} /></label>
-        <label className="text-sm font-medium text-slate-700">New password<input type="password" autoComplete="new-password" minLength={8} className={inputClass} disabled={busy} value={passwords.password} onChange={event => setPasswords({ ...passwords, password: event.target.value })} /></label>
-        <label className="text-sm font-medium text-slate-700">Confirm new password<input type="password" autoComplete="new-password" required={!!passwords.password} className={inputClass} disabled={busy} value={passwords.password_confirmation} onChange={event => setPasswords({ ...passwords, password_confirmation: event.target.value })} /></label>
+        <label className="text-sm font-medium text-slate-700">Current password<PasswordInput passwordLabel="current password" autoComplete="current-password" required={!!passwords.password} className={inputClass} disabled={busy} value={passwords.current_password} onChange={event => setPasswords({ ...passwords, current_password: event.target.value })} /></label>
+        <label className="text-sm font-medium text-slate-700">New password<PasswordInput passwordLabel="new password" autoComplete="new-password" minLength={8} className={inputClass} disabled={busy} value={passwords.password} onChange={event => setPasswords({ ...passwords, password: event.target.value })} /></label>
+        <label className="text-sm font-medium text-slate-700">Confirm new password<PasswordInput passwordLabel="confirm new password" autoComplete="new-password" required={!!passwords.password} className={inputClass} disabled={busy} value={passwords.password_confirmation} onChange={event => setPasswords({ ...passwords, password_confirmation: event.target.value })} /></label>
       </div><button disabled={busy} className={`${buttonClass} bg-blue-600 text-white`}>{busy ? "Saving…" : "Save profile"}</button>
     </form>}
     {panel === "addresses" && <div className="mt-5 space-y-4">

@@ -1,5 +1,7 @@
 "use client";
 
+import PasswordInput from "@/components/PasswordInput";
+
 import { useEffect, useState, type FormEvent } from "react";
 import RequestedTimeFields from "@/components/RequestedTimeFields";
 import { requestTimestamp } from "@/lib/requested-times";
@@ -105,8 +107,8 @@ export default function StaffCustomerIntake({ customers, onSaved }: { customers:
         <label className="text-sm font-medium">Full name<input disabled={busy} required maxLength={255} className={input} value={profile.name} onChange={event => setProfile({ ...profile, name: event.target.value })} /></label>
         <label className="text-sm font-medium">Phone for contact and sign in<input disabled={busy} type="tel" required pattern="\+?[0-9]{7,15}" title="Use 7–15 digits, optionally starting with +, without spaces or dashes." className={input} value={profile.phone} onChange={event => setProfile({ ...profile, phone: event.target.value })} placeholder="09123456789" /></label>
         <label className="text-sm font-medium md:col-span-2">Email (optional)<input disabled={busy} type="email" maxLength={255} className={input} value={profile.email} onChange={event => setProfile({ ...profile, email: event.target.value })} /></label>
-        <label className="text-sm font-medium">Initial password<input disabled={busy} type="password" autoComplete="new-password" minLength={8} required className={input} value={profile.password} onChange={event => setProfile({ ...profile, password: event.target.value })} /></label>
-        <label className="text-sm font-medium">Confirm initial password<input disabled={busy} type="password" autoComplete="new-password" minLength={8} required className={input} value={profile.password_confirmation} onChange={event => setProfile({ ...profile, password_confirmation: event.target.value })} /></label>
+        <label className="text-sm font-medium">Initial password<PasswordInput passwordLabel="initial password" disabled={busy} autoComplete="new-password" minLength={8} required className={input} value={profile.password} onChange={event => setProfile({ ...profile, password: event.target.value })} /></label>
+        <label className="text-sm font-medium">Confirm initial password<PasswordInput passwordLabel="confirm initial password" disabled={busy} autoComplete="new-password" minLength={8} required className={input} value={profile.password_confirmation} onChange={event => setProfile({ ...profile, password_confirmation: event.target.value })} /></label>
       </div><p className="text-sm text-slate-600">Use at least 8 characters. The customer can sign in using their phone or email and change their password in Edit profile.</p>
       <h3 className="font-semibold">2. Save their address</h3>{addressFields()}
       <div className="flex gap-2"><button disabled={busy} className={`${button} bg-blue-600 text-white`}>{busy ? "Saving…" : "Save customer and address"}</button><button type="button" disabled={busy} className={button} onClick={() => setMode(null)}>Cancel</button></div>

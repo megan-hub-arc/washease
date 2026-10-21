@@ -1,5 +1,7 @@
 "use client";
 
+import LaundryIllustration from "@/components/LaundryIllustration";
+
 import WorkspaceIcon from "@/components/WorkspaceIcon";
 import CustomerLiveUpdates from "@/components/CustomerLiveUpdates";
 import CustomerAccount from "@/components/CustomerAccount";
@@ -325,7 +327,7 @@ export default function CustomerPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50">
+      <main className="flex min-h-screen items-center justify-center laundry-background">
         <p className="text-sm text-slate-500">
           Loading your WashEase account...
         </p>
@@ -337,7 +339,7 @@ export default function CustomerPage() {
   const featuredOrder = activeOrders[0];
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen laundry-background">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
@@ -359,9 +361,9 @@ export default function CustomerPage() {
       </header>
 
       <div className="mx-auto max-w-3xl space-y-5 px-5 pt-6 pb-28">
-        <section hidden={section !== "Home"}>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Hi, {user?.name.split(" ")[0] ?? "there"}</h2>
-          <p className="mt-1 text-sm text-slate-500">Here’s the latest on your laundry.</p>
+        <section hidden={section !== "Home"} className="laundry-welcome flex items-center justify-between gap-3">
+          <div className="min-w-0"><p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">Your laundry, in order</p><h2 className="break-words text-2xl font-bold tracking-tight text-slate-900">Hi, {user?.name.split(" ")[0] ?? "there"}</h2>
+          <p className="mt-1 text-sm text-slate-600">Here’s the latest on your laundry.</p></div><LaundryIllustration className="h-20 w-24 shrink-0 sm:h-32 sm:w-44" />
         </section>
 
         {error && (

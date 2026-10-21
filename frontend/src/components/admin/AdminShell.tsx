@@ -203,7 +203,7 @@ export default function AdminShell({
   }
 
   return (
-    <div className="staff-workspace min-h-screen bg-slate-50 text-slate-900">
+    <div className="staff-workspace min-h-screen laundry-background text-slate-900">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3">Skip to page content</a>
       {sidebarOpen && <button type="button" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-30 bg-slate-950/30 lg:hidden" />}
       <aside id="staff-navigation" className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-slate-200 bg-white transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>

@@ -20,6 +20,9 @@ class OrderObserver
         if ($order->wasChanged(['payment_status', 'payment_method'])) {
             $this->notify($order, 'payment');
         }
+        if ($order->wasChanged(['weight', 'total_amount'])) {
+            $this->notify($order, 'weighing');
+        }
         if ($order->wasChanged(['pickup_requested_at', 'delivery_requested_at'])) {
             $this->notify($order, 'requested_times');
         }

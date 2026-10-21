@@ -37,5 +37,18 @@ export function customerOrderFeedback(previous: FeedbackOrder[] | null, current:
   const oldStatus = old.delivery_run?.status === "Started" ? "Out on delivery" : old.status;
   if (status !== oldStatus) return { message: `${number}: now ${status}.`, orderIds };
   if (order.payment_status !== old.payment_status) return { message: `${number}: payment ${order.payment_status?.toLowerCase()}.`, orderIds };
-  return { message: `${number}: order details updated.`, orderIds };
+  const details: string[] = [];
+  if (order.weight !== old.weight || order.total_amount !== old.total_amount) {
+    const weight = order.weight == null ? "not recorded" : `${Number(order.weight).toFixed(2)} kg`;
+    const total = order.total_amount == null ? "not recorded" : `₱${Number(order.total_amount).toFixed(2)}`;
+    details.push(`weight ${weight}; total ${total}`);
+  }
+  for (const [field, label] of [["pickup_requested_at", "requested pickup"], ["delivery_requested_at", "requested delivery"]] as const) {
+    if (order[field] !== old[field]) {
+      const value = order[field];
+      const formatted = value ? new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)) + " PHT" : "Not set";
+      details.push(`${label}: ${formatted}`);
+    }
+  }
+  return { message: `${number}: ${details.length ? details.join(". ") : "order details updated"}.`, orderIds };
 }

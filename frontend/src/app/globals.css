@@ -86,3 +86,23 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .staff-workspace :is(button, aside) { transition: none; }
 }
+
+/* Laundry-inspired surfaces: static bubbles keep text and controls distraction-free. */
+.laundry-background {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(circle at 94% 8%, transparent 0 42px, #93c5fd 43px 46px, transparent 46px),
+    radial-gradient(circle at 85% 3%, #dbeafe 0 22px, transparent 23px),
+    radial-gradient(circle at 5% 65%, transparent 0 62px, #7dd3fc 63px 66px, transparent 66px),
+    linear-gradient(145deg, #dbeafe 0%, #f8fafc 48%, #e0f2fe 100%);
+  background-attachment: fixed;
+}
+.laundry-welcome {
+  border: 1px solid #93c5fd;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  background-color: #dbeafe;
+  background-image:
+    radial-gradient(circle at 96% 12%, #eff6ff 0 36px, #93c5fd 37px 40px, transparent 40px),
+    radial-gradient(circle at 88% 90%, #bfdbfe 0 20px, transparent 21px);
+}
