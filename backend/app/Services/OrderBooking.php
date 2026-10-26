@@ -49,7 +49,12 @@ class OrderBooking
         $times = self::normalizedTimes($validated);
 
         return DB::transaction(function () use ($customer, $validated, $times) {
-            $address = $customer->addresses()->whereNull('archived_at')->lockForUpdate()->findOrFail($validated['address_id']);
+            $address = $customer->addresses()->whereNull('archived_at')->lockForUpdate()->find($validated['address_id']);
+            if (! $address) {
+                throw ValidationException::withMessages([
+                    'address_id' => ['The selected address is no longer available. Refresh your addresses and choose a current address.'],
+                ]);
+            }
             $service = Service::whereKey($validated['service_id'])->where('is_active', true)->firstOrFail();
 
             return $customer->orders()->create([

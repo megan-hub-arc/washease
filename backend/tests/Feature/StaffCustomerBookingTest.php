@@ -66,10 +66,10 @@ class StaffCustomerBookingTest extends TestCase
         $this->assertNull($order->weight);
         $foreign = Address::create(['user_id' => User::factory()->create()->id, 'address' => 'Other street']);
         $payload['address_id'] = $foreign->id;
-        $this->postJson($path, $payload)->assertNotFound();
+        $this->postJson($path, $payload)->assertUnprocessable()->assertJsonValidationErrors('address_id');
         $payload['address_id'] = $data['addresses'][0]['id'];
         Address::findOrFail($payload['address_id'])->update(['archived_at' => now()]);
-        $this->postJson($path, $payload)->assertNotFound();
+        $this->postJson($path, $payload)->assertUnprocessable()->assertJsonValidationErrors('address_id');
         $new = $this->postJson('/api/staff/customers/'.$data['id'].'/addresses', ['address' => 'Another street', 'delivery_zone_id' => 999])->assertCreated()->json('address');
         $this->assertNull($new['delivery_zone_id']);
         $payload['address_id'] = $new['id'];

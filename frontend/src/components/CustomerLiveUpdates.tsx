@@ -43,24 +43,39 @@ export default function CustomerLiveUpdates<T extends FeedbackOrder>({ onOrdersU
       const timeout = window.setTimeout(() => activeController.abort(), 10000);
       try {
         const headers = { Accept: "application/json", Authorization: `Bearer ${token}` };
-        const [ordersResponse, notificationsResponse] = await Promise.all([
-          fetch(`${API_URL}/orders`, { headers, signal: controller.signal, cache: "no-store" }),
-          fetch(`${API_URL}/customer/notifications?page=${page}`, { headers, signal: controller.signal, cache: "no-store" }),
+        const failures: string[] = [];
+        const load = async (path: string) => {
+          const response = await fetch(`${API_URL}${path}`, { headers, signal: activeController.signal, cache: "no-store" });
+          if (response.status === 401) {
+            stopped = true; localStorage.removeItem("washease_token"); localStorage.removeItem("washease_user"); router.replace("/");
+            throw new Error("Session expired.");
+          }
+          if (!response.ok) throw new Error("Refresh failed.");
+          return response.json();
+        };
+        await Promise.all([
+          (async () => {
+            try {
+              const orders = await load("/orders");
+              if (!Array.isArray(orders)) throw new Error("Invalid orders.");
+              if (disposed || stopped) return;
+              const feedback = customerOrderFeedback(previous.current, orders as T[]);
+              previous.current = orders as T[];
+              if (feedback) { setUpdate(feedback); onOrderChanges?.(feedback.orderIds); }
+              onOrdersUpdated(orders as T[]);
+            } catch { failures.push("Orders could not refresh; previously loaded orders are still shown."); }
+          })(),
+          (async () => {
+            try {
+              const notices = await load(`/customer/notifications?page=${page}`);
+              if (!notices || !Array.isArray(notices.notifications)) throw new Error("Invalid notifications.");
+              if (disposed || stopped) return;
+              setNotifications(notices.notifications); setUnreadCount(notices.unread_count); setLastPage(notices.last_page);
+            } catch { failures.push("Saved notifications could not refresh; previously loaded notifications are still shown."); }
+          })(),
         ]);
-        if (ordersResponse.status === 401 || notificationsResponse.status === 401) {
-          stopped = true; localStorage.removeItem("washease_token"); localStorage.removeItem("washease_user"); router.replace("/"); return;
-        }
-        if (!ordersResponse.ok || !notificationsResponse.ok) throw new Error("Automatic updates could not connect. Previously loaded information is still shown.");
-        const [orders, notices] = await Promise.all([ordersResponse.json(), notificationsResponse.json()]);
-        if (disposed) return;
-        const feedback = customerOrderFeedback(previous.current, orders as T[]);
-        previous.current = orders as T[];
-        if (feedback) {
-          setUpdate(feedback);
-          onOrderChanges?.(feedback.orderIds);
-        }
-        onOrdersUpdated(orders as T[]);
-        setNotifications(notices.notifications); setUnreadCount(notices.unread_count); setLastPage(notices.last_page);
+        if (disposed || stopped) return;
+        if (failures.length) { setError(failures.join(" ")); return; }
         setLastSynced(new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit", second: "2-digit" }).format(new Date()));
         setError("");
       } catch (error) {

@@ -253,7 +253,7 @@ export default function CustomerPage() {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (response.status === 401) {
         localStorage.removeItem("washease_token");
@@ -263,9 +263,23 @@ export default function CustomerPage() {
       }
 
       if (!response.ok) {
-        throw new Error(
-          data.errors ? Object.values(data.errors).flat().join(" ") : data?.message ?? "Unable to create booking."
-        );
+        if (response.status === 404 || (response.status === 422 && data.errors?.address_id)) {
+          setSelectedAddressId("");
+          const current = await fetch(`${API_URL}/addresses`, {
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, cache: "no-store",
+          }).catch(() => null);
+          if (current?.status === 401) {
+            localStorage.removeItem("washease_token"); localStorage.removeItem("washease_user"); router.replace("/"); return;
+          }
+          if (current?.ok) {
+            const addresses = await current.json().catch(() => null);
+            if (Array.isArray(addresses)) setAddresses(addresses);
+          }
+          throw new Error("The selected address or service is no longer available. Choose a current address and service, then try again. You can add an address in Account.");
+        }
+        throw new Error(response.status >= 500
+          ? "Booking could not be completed. Check your orders before trying again."
+          : data.errors ? Object.values(data.errors).flat().join(" ") : "Unable to create booking. Check your details and try again.");
       }
 
       setOrders((currentOrders) => [

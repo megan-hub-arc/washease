@@ -45,7 +45,7 @@ class CustomerAccountTest extends TestCase
         $this->assertEquals('Original instructions', $address->fresh()->notes);
         $this->assertEquals($zone->id, $address->fresh()->delivery_zone_id);
         $this->getJson('/api/addresses')->assertOk()->assertJsonCount(1)->assertJsonPath('0.id', $newId);
-        $this->postJson('/api/orders', ['address_id' => $address->id, 'service_id' => $service->id, 'payment_preference' => 'Cash'])->assertNotFound();
+        $this->postJson('/api/orders', ['address_id' => $address->id, 'service_id' => $service->id, 'payment_preference' => 'Cash'])->assertUnprocessable()->assertJsonValidationErrors('address_id');
         $this->postJson('/api/orders', ['address_id' => $newId, 'service_id' => $service->id, 'payment_preference' => 'Cash'])->assertCreated();
     }
 
