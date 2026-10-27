@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Address;
 use App\Models\DeliveryZone;
+use App\Services\ZtlpaScheduler;
 use Illuminate\Http\Request;
 
 class DeliveryZoneController extends Controller
@@ -57,7 +58,9 @@ class DeliveryZoneController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $deliveryZone->update($validated);
+        app(ZtlpaScheduler::class)->synchronize(function () use ($deliveryZone, $validated): void {
+            $deliveryZone->update($validated);
+        });
 
         return response()->json([
             'message' => 'Delivery zone updated successfully.',
@@ -77,9 +80,9 @@ class DeliveryZoneController extends Controller
             ],
         ]);
 
-        $address->update([
-            'delivery_zone_id' => $validated['delivery_zone_id'],
-        ]);
+        app(ZtlpaScheduler::class)->synchronize(function () use ($address, $validated): void {
+            $address->update(['delivery_zone_id' => $validated['delivery_zone_id']]);
+        });
 
         return response()->json([
             'message' => 'Address assigned to delivery zone successfully.',

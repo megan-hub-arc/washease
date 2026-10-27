@@ -2,11 +2,41 @@
 
 namespace App\Services;
 
+use App\Models\DeliveryRun;
+use App\Models\DeliveryZone;
 use App\Models\Order;
+use Closure;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ZtlpaScheduler
 {
+    /**
+     * Apply a scheduling input change and rebuild the free queue atomically.
+     * Assigned runs retain their existing order sequence and load.
+     */
+    public function synchronize(?Closure $change = null): Collection
+    {
+        return DB::transaction(function () use ($change): Collection {
+            DeliveryZone::select('id')->orderBy('id')->lockForUpdate()->get();
+            DeliveryRun::select('id')->orderBy('id')->lockForUpdate()->get();
+            Order::select('id')->whereNull('delivery_run_id')->orderBy('id')->lockForUpdate()->get();
+            if ($change !== null) {
+                $change();
+            }
+            $orders = Order::with('address.deliveryZone')->whereNull('delivery_run_id')
+                ->where(function ($query) {
+                    $query->where('status', 'Ready for Delivery')
+                        ->orWhere(function ($stale) {
+                            $stale->where('delivery_status', 'Scheduled')->where('status', '!=', 'Delivered');
+                        });
+                })->orderBy('id')->get();
+            $offset = (int) Order::where('status', 'Ready for Delivery')->whereNotNull('delivery_run_id')->max('delivery_sequence');
+
+            return $this->schedule($orders, $offset);
+        }, 3);
+    }
+
     public function prioritize(Collection $orders): Collection
     {
         return $orders
@@ -51,16 +81,19 @@ class ZtlpaScheduler
         $eligibleIds = $prioritizedOrders->pluck('id');
         foreach ($orders as $order) {
             if ($order->delivery_run_id === null && ! $eligibleIds->contains($order->id)) {
-                $order->update(['delivery_status' => 'Unscheduled', 'delivery_sequence' => null, 'scheduled_at' => null]);
+                $order->updateQuietly(['delivery_status' => 'Unscheduled', 'delivery_sequence' => null, 'scheduled_at' => null]);
             }
         }
 
         foreach ($prioritizedOrders as $index => $order) {
-            $order->update([
-                'delivery_sequence' => $offset + $index + 1,
-                'scheduled_at' => now(),
-                'delivery_status' => 'Scheduled',
-            ]);
+            $sequence = $offset + $index + 1;
+            if ($order->delivery_sequence !== $sequence || $order->delivery_status !== 'Scheduled' || $order->scheduled_at === null) {
+                $order->updateQuietly([
+                    'delivery_sequence' => $sequence,
+                    'scheduled_at' => now(),
+                    'delivery_status' => 'Scheduled',
+                ]);
+            }
         }
 
         return $prioritizedOrders->fresh();

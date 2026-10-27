@@ -419,9 +419,9 @@ function OrderManagementPanel({
   const deliveryHelp = order.status === "Delivered" ? "Delivery is complete. Review payment if collection is still outstanding."
     : order.delivery_run?.status === "Started" ? "The assigned rider has departed. Reassignment is locked; update delivery when the customer receives the laundry."
     : order.status !== "Ready for Delivery" ? "Rider assignment becomes available when laundry is Ready for Delivery. Complete the processing stages first."
-    : Number(order.weight || 0) <= 0 ? "Record a positive laundry weight in Weigh & review before scheduling."
-    : !order.address?.delivery_zone ? "Assign a delivery zone to this customer’s address before scheduling."
-    : order.delivery_status !== "Scheduled" ? "Open delivery planning and schedule this ready order before assigning a rider."
+    : Number(order.weight || 0) <= 0 ? "Record a positive laundry weight in Weigh & review before automatic prioritization."
+    : !order.address?.delivery_zone ? "Assign a delivery zone to this customer’s address before automatic prioritization."
+    : order.delivery_status !== "Scheduled" ? "This order has not entered the automatic queue. Check weight and active zone; use Queue recovery in Deliveries for an older ready order."
     : "This order can be assigned or moved to a planned run before departure.";
 
   const [status, setStatus] =

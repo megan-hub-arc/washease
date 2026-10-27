@@ -31,7 +31,7 @@ export default function OrderRequestedTimes({ order, onSaved }: { order: TimingO
     {locked ? <p className="mt-3 text-xs text-slate-600">Requested times are locked after rider assignment or delivery.</p> : editing ? <form onSubmit={save} className="mt-4 space-y-3">
       <RequestedTimeFields value={value} onChange={setValue} disabled={busy} />
       <p className="rounded-lg bg-blue-50 p-3 text-xs leading-5 text-blue-900">Agree changes with the customer before saving. A changed time is saved and a customer notification is created only after a successful save. Choose a future date for any new time; an unchanged historical pickup may stay as recorded.</p>
-      <p className="text-xs text-amber-800">Saving clears this order’s previous delivery priority. Schedule it again in Deliveries before assigning a rider.</p>
+      <p className="text-xs text-amber-800">Saving automatically updates this order’s delivery priority when it is Ready, has a positive weight, and belongs to an active zone. Assigned runs remain locked.</p>
       <div className="flex gap-2"><button disabled={busy} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">{busy ? "Saving…" : "Save requested times"}</button><button type="button" disabled={busy} onClick={() => setEditing(false)} className="rounded-lg border px-4 py-2 text-sm">Cancel</button></div>
     </form> : <button type="button" onClick={() => { setValue({ pickup: requestedTimeInput(order.pickup_requested_at), delivery: requestedTimeInput(order.delivery_requested_at) }); setEditing(true); setMessage(""); }} className="mt-3 rounded-lg border px-4 py-2 text-sm font-semibold">Edit requested times</button>}
   </div>;

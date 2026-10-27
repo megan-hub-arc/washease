@@ -8,6 +8,7 @@ use App\Models\DeliveryZone;
 use App\Models\Order;
 use App\Models\Service;
 use App\Models\User;
+use App\Services\ZtlpaScheduler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -125,7 +126,7 @@ class OrderSchedulingTest extends TestCase
         $this->postJson('/api/staff/orders/schedule')->assertForbidden();
         Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
         $order->update(['delivery_status' => 'Scheduled', 'delivery_sequence' => 2]);
-        $this->putJson($path, $payload)->assertOk()->assertJsonPath('order.delivery_status', 'Unscheduled')->assertJsonPath('order.delivery_sequence', null);
+        $this->putJson($path, $payload)->assertOk()->assertJsonPath('order.delivery_status', 'Scheduled')->assertJsonPath('order.delivery_sequence', 1);
         $this->putJson($path, [])->assertUnprocessable();
         $order->update(['pickup_requested_at' => '2026-10-02 01:00:00']);
         $payload['pickup_requested_at'] = '2026-10-02T09:00:00+08:00';
@@ -169,5 +170,112 @@ class OrderSchedulingTest extends TestCase
         $this->putJson("/api/staff/orders/{$order->id}/payment", ['payment_status' => 'Unpaid'])->assertOk();
         $order->update(['weight' => 3]);
         $this->putJson("/api/staff/orders/{$order->id}/payment", ['payment_status' => 'Paid', 'payment_method' => 'Cash'])->assertOk();
+    }
+
+    public function test_marking_ready_automatically_prioritizes_without_schedule_request(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'Automatic', 'priority_order' => 1, 'is_active' => true]);
+        $late = $this->readyOrder($zone, '2026-10-29 10:00:00');
+        $late->update(['status' => 'Processing']);
+        $early = $this->readyOrder($zone, '2026-10-29 09:00:00');
+        $early->update(['status' => 'Processing']);
+        $this->putJson("/api/orders/{$late->id}/status", ['status' => 'Ready for Delivery'])->assertOk()->assertJsonPath('order.delivery_status', 'Scheduled')->assertJsonPath('order.delivery_sequence', 1);
+        $this->putJson("/api/orders/{$early->id}/status", ['status' => 'Ready for Delivery'])->assertOk()->assertJsonPath('order.delivery_sequence', 1);
+        $this->assertEquals(2, $late->fresh()->delivery_sequence);
+    }
+
+    public function test_weight_change_reorders_free_queue_and_does_not_change_assigned_run(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'Weight queue', 'priority_order' => 1, 'is_active' => true]);
+        $assigned = $this->readyOrder($zone, null, 3);
+        $run = DeliveryRun::create(['rider_id' => User::factory()->create(['role' => 'rider'])->id, 'status' => 'Started', 'capacity_kg' => 20, 'max_orders' => 20, 'total_load_kg' => 3]);
+        $assigned->update(['delivery_run_id' => $run->id, 'delivery_sequence' => 4, 'delivery_status' => 'Scheduled']);
+        $light = $this->readyOrder($zone, null, 2);
+        $heavy = $this->readyOrder($zone, null, 6);
+        $service = Service::create(['name' => 'Automatic wash', 'rate' => 35, 'pricing_type' => 'per_kg', 'is_active' => true]);
+        $light->update(['service_id' => $service->id]);
+        $this->putJson("/api/staff/orders/{$light->id}/weight", ['weight' => 8])->assertOk()->assertJsonPath('order.delivery_sequence', 5);
+        $this->assertEquals(6, $heavy->fresh()->delivery_sequence);
+        $this->assertEquals(4, $assigned->fresh()->delivery_sequence);
+        $this->assertEquals(3, $run->fresh()->total_load_kg);
+        $this->assertEquals($run->id, $assigned->fresh()->delivery_run_id);
+        $this->assertEquals(280, $light->fresh()->total_amount);
+    }
+
+    public function test_requested_delivery_change_reprioritizes_without_extra_customer_notices(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 27)->setTime(8, 0));
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'Time queue', 'priority_order' => 1, 'is_active' => true]);
+        $first = $this->readyOrder($zone, '2026-10-29 09:00:00');
+        $second = $this->readyOrder($zone, '2026-10-29 10:00:00');
+        $before = $second->user->notifications()->count();
+        $this->putJson("/api/staff/orders/{$second->id}/requested-times", ['pickup_requested_at' => null, 'delivery_requested_at' => '2026-10-29T16:00:00+08:00'])->assertOk()->assertJsonPath('order.delivery_sequence', 1);
+        $this->assertEquals(2, $first->fresh()->delivery_sequence);
+        $this->assertEquals($before + 1, $second->user->notifications()->count());
+    }
+
+    public function test_zone_changes_automatically_update_free_queue_and_preserve_assigned_sequence(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $a = DeliveryZone::create(['name' => 'A queue', 'priority_order' => 1, 'is_active' => true]);
+        $b = DeliveryZone::create(['name' => 'B queue', 'priority_order' => 2, 'is_active' => true]);
+        $first = $this->readyOrder($a, null);
+        $second = $this->readyOrder($b, null);
+        $assigned = $this->readyOrder($a, null);
+        $run = DeliveryRun::create(['rider_id' => User::factory()->create(['role' => 'rider'])->id, 'status' => 'Started', 'capacity_kg' => 20, 'max_orders' => 20, 'total_load_kg' => 3]);
+        $assigned->update(['delivery_run_id' => $run->id, 'delivery_sequence' => 1, 'delivery_status' => 'Scheduled']);
+        $this->putJson("/api/staff/delivery-zones/{$b->id}", ['priority_order' => 1])->assertOk();
+        $this->putJson("/api/staff/delivery-zones/{$a->id}", ['priority_order' => 3])->assertOk();
+        $this->assertEquals(2, $second->fresh()->delivery_sequence);
+        $this->assertEquals(3, $first->fresh()->delivery_sequence);
+        $this->putJson("/api/staff/delivery-zones/{$b->id}", ['is_active' => false])->assertOk();
+        $this->assertNull($second->fresh()->delivery_sequence);
+        $this->assertEquals('Unscheduled', $second->fresh()->delivery_status);
+        $this->assertEquals(1, $assigned->fresh()->delivery_sequence);
+        $this->putJson("/api/staff/delivery-zones/{$b->id}", ['is_active' => true])->assertOk();
+        $this->assertEquals('Scheduled', $second->fresh()->delivery_status);
+        $this->putJson("/api/staff/delivery-zones/{$b->id}", ['is_active' => false])->assertOk();
+        $this->putJson("/api/staff/addresses/{$second->address_id}/zone", ['delivery_zone_id' => $a->id])->assertOk();
+        $this->assertEquals('Scheduled', $second->fresh()->delivery_status);
+    }
+
+    public function test_refresh_keeps_unchanged_schedule_time_and_customer_notification_count(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'Stable queue', 'priority_order' => 1, 'is_active' => true]);
+        $order = $this->readyOrder($zone, null);
+        $this->postJson('/api/staff/orders/schedule')->assertOk();
+        $scheduledAt = $order->fresh()->scheduled_at;
+        $notices = $order->user->notifications()->count();
+        $this->travel(1)->minutes();
+        $this->postJson('/api/staff/orders/schedule')->assertOk();
+        $this->assertTrue($scheduledAt->equalTo($order->fresh()->scheduled_at));
+        $this->assertEquals($notices, $order->user->notifications()->count());
+    }
+
+    public function test_rejected_change_and_transaction_rollback_preserve_queue_and_notices(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'Rollback queue', 'priority_order' => 1, 'is_active' => true]);
+        $order = $this->readyOrder($zone, null);
+        $this->postJson('/api/staff/orders/schedule')->assertOk();
+        $sequence = $order->fresh()->delivery_sequence;
+        $notices = $order->user->notifications()->count();
+        $this->putJson("/api/staff/orders/{$order->id}/weight", ['weight' => 0])->assertUnprocessable();
+        try {
+            app(ZtlpaScheduler::class)->synchronize(function () use ($order): void {
+                $order->update(['weight' => 7]);
+                throw new \RuntimeException('Rollback scheduling input');
+            });
+            $this->fail('The transaction should throw.');
+        } catch (\RuntimeException $exception) {
+            $this->assertEquals('Rollback scheduling input', $exception->getMessage());
+        }
+        $this->assertEquals(3, $order->fresh()->weight);
+        $this->assertEquals($sequence, $order->fresh()->delivery_sequence);
+        $this->assertEquals($notices, $order->user->notifications()->count());
     }
 }

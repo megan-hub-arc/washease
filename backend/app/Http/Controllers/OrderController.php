@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DeliveryRun;
 use App\Models\Order;
 use App\Services\OrderBooking;
 use App\Services\ZtlpaScheduler;
@@ -17,19 +16,14 @@ class OrderController extends Controller
     {
         $this->ensureStaffOrAdmin($request);
 
-        return DB::transaction(function () use ($scheduler) {
-            // Assigned runs retain their established sequence; rebuild only the free queue.
-            $orders = Order::with('address.deliveryZone')->where('status', 'Ready for Delivery')
-                ->whereNull('delivery_run_id')->orderBy('id')->lockForUpdate()->get();
-            $offset = (int) Order::where('status', 'Ready for Delivery')->whereNotNull('delivery_run_id')->max('delivery_sequence');
-            $scheduledOrders = $scheduler->schedule($orders, $offset);
-            $skipped = $orders->count() - $scheduledOrders->count();
+        $scheduledOrders = $scheduler->synchronize();
+        $skipped = Order::where('status', 'Ready for Delivery')->whereNull('delivery_run_id')
+            ->where('delivery_status', 'Unscheduled')->count();
 
-            return response()->json([
-                'message' => "Prioritized {$scheduledOrders->count()} unassigned orders. {$skipped} need a positive weight or an active delivery zone.",
-                'orders' => $scheduledOrders,
-            ]);
-        });
+        return response()->json([
+            'message' => "Delivery queue refreshed: {$scheduledOrders->count()} prioritized; {$skipped} need weight or an active zone.",
+            'orders' => $scheduledOrders,
+        ]);
     }
 
     public function updateRequestedTimes(Request $request, Order $order)
@@ -40,7 +34,7 @@ class OrderController extends Controller
             'delivery_requested_at' => ['present', 'nullable', 'date_format:Y-m-d\\TH:i:sP'],
         ]);
         $times = OrderBooking::normalizedTimes($validated);
-        $updated = DB::transaction(function () use ($order, $times) {
+        app(ZtlpaScheduler::class)->synchronize(function () use ($order, $times): void {
             $current = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             abort_if($current->status === 'Delivered' || $current->delivery_run_id !== null, 422, 'Requested times cannot change after rider assignment or delivery.');
             foreach ($times as $field => $value) {
@@ -53,12 +47,13 @@ class OrderController extends Controller
                     throw ValidationException::withMessages([$field => ['A new requested time must be in the future.']]);
                 }
             }
-            $current->update($times + ['delivery_status' => 'Unscheduled', 'delivery_sequence' => null, 'scheduled_at' => null]);
-
-            return $current->fresh()->load(['user', 'address.deliveryZone', 'deliveryRun.rider']);
+            $current->update($times);
         });
 
-        return response()->json(['message' => 'Requested times saved. Schedule the order again when ready.', 'order' => $updated]);
+        return response()->json([
+            'message' => 'Requested times saved. Eligible delivery priorities updated automatically.',
+            'order' => $order->fresh()->load(['user', 'address.deliveryZone', 'deliveryRun.rider']),
+        ]);
     }
 
     private function ensureStaffOrAdmin(Request $request): void
@@ -122,8 +117,7 @@ class OrderController extends Controller
             'status' => ['required', 'string', 'in:'.implode(',', Order::STATUSES)],
         ]);
 
-        return DB::transaction(function () use ($order, $validated) {
-            DeliveryRun::orderBy('id')->lockForUpdate()->get();
+        app(ZtlpaScheduler::class)->synchronize(function () use ($order, $validated): void {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $this->ensureValidStatusTransition($order, $validated['status']);
             if ($validated['status'] === 'Ready for Delivery') {
@@ -140,12 +134,12 @@ class OrderController extends Controller
             if ($validated['status'] === 'Delivered' && ! $order->deliveryRun->orders()->where('status', '!=', 'Delivered')->exists()) {
                 $order->deliveryRun->update(['status' => 'Completed', 'completed_at' => now()]);
             }
-
-            return response()->json([
-                'message' => 'Order status updated successfully.',
-                'order' => $order->fresh()->load('deliveryRun.rider'),
-            ]);
         });
+
+        return response()->json([
+            'message' => 'Order status saved. Eligible delivery priorities updated automatically.',
+            'order' => $order->fresh()->load(['service', 'address.deliveryZone', 'deliveryRun.rider']),
+        ]);
     }
 
     public function updateWeight(Request $request, Order $order)
@@ -156,7 +150,7 @@ class OrderController extends Controller
             'weight' => ['required', 'numeric', 'gt:0'],
         ]);
 
-        return DB::transaction(function () use ($order, $validated) {
+        app(ZtlpaScheduler::class)->synchronize(function () use ($order, $validated): void {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             abort_if($order->delivery_run_id !== null, 422, 'Weight cannot be changed after delivery assignment.');
             abort_if($order->payment_status === 'Paid', 422, 'Weight cannot be changed after payment confirmation.');
@@ -178,12 +172,12 @@ class OrderController extends Controller
                 'weight' => $weight,
                 'total_amount' => round($totalAmount, 2),
             ]);
-
-            return response()->json([
-                'message' => 'Order weight and total amount updated successfully.',
-                'order' => $order->fresh('service'),
-            ]);
         });
+
+        return response()->json([
+            'message' => 'Weight and amount saved. Eligible delivery priorities updated automatically.',
+            'order' => $order->fresh()->load(['service', 'address.deliveryZone', 'deliveryRun.rider']),
+        ]);
     }
 
     public function updatePayment(Request $request, Order $order)
