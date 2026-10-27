@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'payment_method',
     'payment_preference',
     'paid_at',
+    'delivered_at',
 
 ])]
 
@@ -74,6 +75,7 @@ class Order extends Model
             'delivery_requested_at' => 'datetime',
             'scheduled_at' => 'datetime',
             'paid_at' => 'datetime',
+            'delivered_at' => 'datetime',
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Address;
 use App\Models\DeliveryRun;
+use App\Models\DeliveryZone;
 use App\Models\Order;
 use App\Models\Service;
 use App\Models\User;
@@ -18,7 +19,8 @@ class DeliveryWorkflowTest extends TestCase
     private function readyOrder(float $weight = 3): Order
     {
         $customer = User::factory()->create(['role' => 'customer']);
-        $address = Address::create(['user_id' => $customer->id, 'address' => 'Test street']);
+        $zone = DeliveryZone::create(['name' => fake()->unique()->bothify('Zone-########'), 'priority_order' => 1, 'is_active' => true]);
+        $address = Address::create(['user_id' => $customer->id, 'address' => 'Test street', 'delivery_zone_id' => $zone->id]);
 
         return Order::create(['user_id' => $customer->id, 'address_id' => $address->id, 'order_number' => fake()->unique()->bothify('WS-########'), 'weight' => $weight, 'status' => 'Ready for Delivery', 'delivery_status' => 'Scheduled', 'delivery_sequence' => 2, 'notes' => 'Wash separately']);
     }
@@ -104,6 +106,7 @@ class DeliveryWorkflowTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $id, 'payment_status' => 'Unpaid', 'payment_method' => null]);
         $this->putJson("/api/staff/orders/{$id}/payment", ['payment_status' => 'Paid', 'payment_method' => 'Cash'])->assertForbidden();
         Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $this->putJson("/api/staff/orders/{$id}/weight", ['weight' => 3])->assertOk();
         $this->putJson("/api/staff/orders/{$id}/payment", ['payment_status' => 'Paid', 'payment_method' => 'Cash'])->assertOk()->assertJsonPath('order.payment_preference', 'GCash')->assertJsonPath('order.payment_method', 'Cash');
     }
 
@@ -203,5 +206,14 @@ class DeliveryWorkflowTest extends TestCase
         Sanctum::actingAs(User::factory()->create(['role' => 'customer']));
         $this->postJson("/api/staff/delivery-runs/{$run->id}/return")->assertForbidden();
         $this->putJson("/api/staff/riders/{$run->rider_id}/duty", ['rider_on_duty' => false])->assertForbidden();
+    }
+
+    public function test_inactive_zone_blocks_assignment_even_if_order_was_previously_scheduled(): void
+    {
+        $order = $this->readyOrder();
+        $run = $this->deliveryRun();
+        $order->address->deliveryZone->update(['is_active' => false]);
+        $this->postJson("/api/staff/delivery-runs/{$run->id}/orders", ['order_ids' => [$order->id]])->assertUnprocessable();
+        $this->assertNull($order->fresh()->delivery_run_id);
     }
 }

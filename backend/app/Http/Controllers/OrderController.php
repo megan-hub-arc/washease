@@ -126,10 +126,17 @@ class OrderController extends Controller
             DeliveryRun::orderBy('id')->lockForUpdate()->get();
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $this->ensureValidStatusTransition($order, $validated['status']);
+            if ($validated['status'] === 'Ready for Delivery') {
+                abort_unless((float) $order->weight > 0, 422, 'Save the actual laundry weight before marking this order Ready for Delivery.');
+                abort_unless($order->address?->deliveryZone?->is_active, 422, 'Assign an active delivery zone to this address before marking this order Ready for Delivery.');
+            }
             if ($validated['status'] === 'Delivered') {
                 abort_unless($order->deliveryRun?->status === 'Started', 422, 'Start the assigned delivery run before marking this order Delivered.');
             }
-            $order->update(['status' => $validated['status']]);
+            $order->update([
+                'status' => $validated['status'],
+                'delivered_at' => $validated['status'] === 'Delivered' ? now() : $order->delivered_at,
+            ]);
             if ($validated['status'] === 'Delivered' && ! $order->deliveryRun->orders()->where('status', '!=', 'Delivered')->exists()) {
                 $order->deliveryRun->update(['status' => 'Completed', 'completed_at' => now()]);
             }
@@ -191,6 +198,7 @@ class OrderController extends Controller
         return DB::transaction(function () use ($order, $validated) {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if ($validated['payment_status'] === 'Paid') {
+                abort_unless((float) $order->weight > 0, 422, 'Save the actual laundry weight before confirming payment.');
                 $order->update([
                     'payment_status' => 'Paid',
                     'payment_method' => $validated['payment_method'] ?? 'Cash',

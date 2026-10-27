@@ -139,4 +139,35 @@ class OrderSchedulingTest extends TestCase
         $order->update(['delivery_run_id' => null, 'status' => 'Delivered']);
         $this->putJson($path, $payload)->assertUnprocessable();
     }
+
+    public function test_ready_transition_requires_weight_and_active_zone_without_changing_status_on_failure(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'Readiness test', 'priority_order' => 1, 'is_active' => true]);
+        $order = $this->readyOrder($zone, null, 0);
+        $order->update(['status' => 'Processing']);
+        $this->putJson("/api/orders/{$order->id}/status", ['status' => 'Ready for Delivery'])->assertUnprocessable();
+        $this->assertEquals('Processing', $order->fresh()->status);
+        $order->update(['weight' => 3]);
+        $zone->update(['is_active' => false]);
+        $this->putJson("/api/orders/{$order->id}/status", ['status' => 'Ready for Delivery'])->assertUnprocessable();
+        $order->address->update(['delivery_zone_id' => null]);
+        $this->putJson("/api/orders/{$order->id}/status", ['status' => 'Ready for Delivery'])->assertUnprocessable();
+        $order->address->update(['delivery_zone_id' => $zone->id]);
+        $zone->update(['is_active' => true]);
+        $this->putJson("/api/orders/{$order->id}/status", ['status' => 'Ready for Delivery'])->assertOk();
+    }
+
+    public function test_payment_cannot_lock_an_unweighed_order_and_existing_bad_payment_can_be_corrected(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'Payment test', 'priority_order' => 1, 'is_active' => true]);
+        $order = $this->readyOrder($zone, null, 0);
+        $this->putJson("/api/staff/orders/{$order->id}/payment", ['payment_status' => 'Paid', 'payment_method' => 'Cash'])->assertUnprocessable();
+        $this->assertEquals('Unpaid', $order->fresh()->payment_status);
+        $order->update(['payment_status' => 'Paid']);
+        $this->putJson("/api/staff/orders/{$order->id}/payment", ['payment_status' => 'Unpaid'])->assertOk();
+        $order->update(['weight' => 3]);
+        $this->putJson("/api/staff/orders/{$order->id}/payment", ['payment_status' => 'Paid', 'payment_method' => 'Cash'])->assertOk();
+    }
 }

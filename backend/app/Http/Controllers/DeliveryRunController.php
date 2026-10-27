@@ -125,6 +125,7 @@ class DeliveryRunController extends Controller
         foreach ($orders as $order) {
             abort_unless($order->status === 'Ready for Delivery' && $order->delivery_status === 'Scheduled' && $order->delivery_sequence !== null, 422, "Order {$order->order_number} must be scheduled and ready.");
             abort_unless((float) $order->weight > 0, 422, 'Record a positive weight before assignment.');
+            abort_unless($order->address?->deliveryZone?->is_active, 422, 'Assign an active delivery zone before rider assignment.');
             if ($order->delivery_run_id !== null) {
                 abort_if($order->delivery_run_id === $run->id, 422, 'Order is already assigned to this run.');
                 $source = DeliveryRun::findOrFail($order->delivery_run_id);

@@ -8,6 +8,7 @@ use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\DeliveryRunController;
 use App\Http\Controllers\DeliveryZoneController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\RiderDeliveryController;
 use App\Http\Controllers\ServiceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -65,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/staff/riders/{rider}/duty', [DeliveryRunController::class, 'updateDuty']);
     Route::post('/staff/delivery-runs/{deliveryRun}/return', [DeliveryRunController::class, 'confirmReturn']);
     Route::get('/staff/riders', [DeliveryRunController::class, 'riders']);
+    Route::post('/staff/delivery-runs/{deliveryRun}/rider-link', [RiderDeliveryController::class, 'issue'])->middleware('throttle:20,1');
+    Route::delete('/staff/delivery-runs/{deliveryRun}/rider-link', [RiderDeliveryController::class, 'revoke']);
     Route::get('/staff/delivery-runs', [DeliveryRunController::class, 'index']);
     Route::post('/staff/delivery-runs/{deliveryRun}/start', [DeliveryRunController::class, 'start']);
     Route::post('/staff/delivery-runs', [DeliveryRunController::class, 'store']);

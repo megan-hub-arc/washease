@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class DeliveryRun extends Model
 {
+    protected $hidden = ['rider_link_token_hash', 'rider_link_session_hash'];
+
     public function rider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'rider_id');
@@ -41,6 +43,8 @@ class DeliveryRun extends Model
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'returned_at' => 'datetime',
+            'rider_link_expires_at' => 'datetime',
+            'rider_link_claimed_at' => 'datetime',
         ];
     }
 }

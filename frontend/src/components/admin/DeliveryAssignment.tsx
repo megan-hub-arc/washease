@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
+import type { CreatedRiderLink } from "@/components/admin/RiderRunLink";
 import { API_URL } from "@/lib/api";
 export type DeliveryRun = { id: number; returned_at: string | null; status: string; capacity_kg: string; total_load_kg: string; max_orders: number; rider: { id: number; name: string; phone: string | null; rider_on_duty: boolean }; orders: { id: number }[] };
-export default function DeliveryAssignment({ orderIds, selectedWeight, initialRiderId, onAssigned }: { orderIds: number[]; selectedWeight?: number; initialRiderId?: number; onAssigned: () => void }) {
+export default function DeliveryAssignment({ orderIds, selectedWeight, initialRiderId, onAssigned, onRiderLink }: { orderIds: number[]; selectedWeight?: number; initialRiderId?: number; onAssigned: () => void; onRiderLink?: (result: CreatedRiderLink) => void }) {
   const [runs, setRuns] = useState<DeliveryRun[]>([]);
   const [riders, setRiders] = useState<{ id: number; name: string; availability: string }[]>([]);
   const [runId, setRunId] = useState("");
@@ -41,6 +42,21 @@ export default function DeliveryAssignment({ orderIds, selectedWeight, initialRi
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message ?? "Assignment failed.");
+      if (!runId && onRiderLink && data.delivery_run?.id) {
+        const createdId = data.delivery_run.id as number;
+        try {
+          const linkResponse = await fetch(`${API_URL}/staff/delivery-runs/${createdId}/rider-link`, {
+            method: "POST", signal: AbortSignal.timeout(15000),
+            headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("washease_token")}` },
+            body: JSON.stringify({ expires_in_minutes: 240 }),
+          });
+          const access = await linkResponse.json();
+          if (!linkResponse.ok || !access.url) throw new Error(access.message || "Unable to create rider access.");
+          onRiderLink({ runId: createdId, url: access.url, expires_at: access.expires_at });
+        } catch (e) {
+          onRiderLink({ runId: createdId, error: `Run created successfully, but its link could not be generated. ${e instanceof Error ? e.message : "Try generating it again."}` });
+        }
+      }
       onAssigned();
     } catch (e) { setError(e instanceof Error ? e.message : "Assignment failed."); } finally { setBusy(false); }
   }

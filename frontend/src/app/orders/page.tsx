@@ -1,6 +1,8 @@
 "use client";
 
+import RiderRunLink, { type CreatedRiderLink } from "@/components/admin/RiderRunLink";
 import OrderRequestedTimes from "@/components/admin/OrderRequestedTimes";
+import { requestedTimeLabel } from "@/lib/requested-times";
 import { API_URL } from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import DeliveryAssignment, { type DeliveryRun } from "@/components/admin/DeliveryAssignment";
@@ -9,6 +11,7 @@ import AdminShell from "@/components/admin/AdminShell";
 type DeliveryZone = {
   id: number;
   name: string;
+  is_active: boolean;
 };
 
 type Address = {
@@ -80,6 +83,7 @@ export default function OrdersPage() {
     let disposed = false;
     let inFlight = false;
     let firstLoad = true;
+    let openedRequestedId: number | null = null;
     let signature: string | null = null;
     const controller = new AbortController();
     async function loadOrders() {
@@ -124,7 +128,8 @@ export default function OrdersPage() {
         setOrders(loaded);
         const requestedId = Number(new URLSearchParams(window.location.search).get("order"));
         const requestedOrder = loaded.find(item => item.id === requestedId);
-        if (firstLoad && requestedOrder) { setSelectedOrder(requestedOrder); setTimeout(() => document.getElementById("order-workspace")?.scrollIntoView({ block: "start" }), 0); }
+        if (requestedOrder && openedRequestedId !== requestedId) { setSelectedOrder(requestedOrder); openedRequestedId = requestedId; }
+        if (requestedId > 0 && !requestedOrder) setError(`Order #${requestedId} was not found or is unavailable to this account.`);
       } catch (error) {
         if (disposed) return;
         if (!firstLoad) { setSyncError("Order updates could not connect. Keeping existing orders and retrying every 15 seconds."); return; }
@@ -147,6 +152,17 @@ export default function OrdersPage() {
     window.addEventListener("online", visible);
     return () => { disposed = true; controller.abort(); window.clearInterval(interval); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", visible); };
   }, []);
+
+  const selectedOrderId = selectedOrder?.id;
+  useEffect(() => {
+    if (!selectedOrderId) return;
+    const frame = requestAnimationFrame(() => {
+      const panel = document.getElementById("order-workspace");
+      panel?.scrollIntoView({ block: "start" });
+      panel?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedOrderId]);
 
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -234,6 +250,14 @@ export default function OrdersPage() {
       {syncNotice && <div role="status" className="mb-4 flex justify-between gap-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-900"><p>{syncNotice}</p><button type="button" onClick={() => setSyncNotice("")} aria-label="Dismiss update notice">×</button></div>}
       {syncError && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{syncError}</p>}
       <section>
+        {selectedOrder && (
+          <OrderManagementPanel
+            key={selectedOrder.id}
+            order={selectedOrder}
+            onClose={() => { setSelectedOrder(null); lastOrderTrigger.current?.focus(); }}
+            onUpdated={handleOrderUpdated}
+          />
+        )}
         <div>
           <p className="mt-1 text-sm text-[#64748b]">
             {orders.length} total{" "}
@@ -367,14 +391,7 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {selectedOrder && (
-          <OrderManagementPanel
-            key={selectedOrder.id}
-            order={selectedOrder}
-            onClose={() => { setSelectedOrder(null); lastOrderTrigger.current?.focus(); }}
-            onUpdated={handleOrderUpdated}
-          />
-        )}
+
       </section>
     </AdminShell>
   );
@@ -389,13 +406,20 @@ function OrderManagementPanel({
   onClose: () => void;
   onUpdated: (order: Order) => void;
 }) {
-  const [section, setSection] = useState("progress");
+  const [createdLink, setCreatedLink] = useState<CreatedRiderLink>();
+  const [section, setSection] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get("section");
+    if (Number(order.weight || 0) <= 0 && order.status !== "Delivered") return "details";
+    return ["details", "delivery", "payment", "progress"].includes(requested ?? "") ? requested! : "progress";
+  });
+  const hasWeight = Number(order.weight || 0) > 0;
+  const hasZone = !!order.address?.delivery_zone?.is_active;
   const nextStatus = filters[filters.indexOf(order.status) + 1];
   const weightLocked = !!order.delivery_run_id || order.payment_status === "Paid";
   const deliveryHelp = order.status === "Delivered" ? "Delivery is complete. Review payment if collection is still outstanding."
     : order.delivery_run?.status === "Started" ? "The assigned rider has departed. Reassignment is locked; update delivery when the customer receives the laundry."
     : order.status !== "Ready for Delivery" ? "Rider assignment becomes available when laundry is Ready for Delivery. Complete the processing stages first."
-    : Number(order.weight || 0) <= 0 ? "Record a positive laundry weight in Laundry & customer before scheduling."
+    : Number(order.weight || 0) <= 0 ? "Record a positive laundry weight in Weigh & review before scheduling."
     : !order.address?.delivery_zone ? "Assign a delivery zone to this customer’s address before scheduling."
     : order.delivery_status !== "Scheduled" ? "Open delivery planning and schedule this ready order before assigning a rider."
     : "This order can be assigned or moved to a planned run before departure.";
@@ -664,8 +688,47 @@ function OrderManagementPanel({
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2" aria-label="Order sections">{[["progress", "Progress"], ["details", "Laundry & customer"], ["delivery", "Delivery"], ["payment", "Payment"]].map(([value, label]) => <button type="button" key={value} aria-pressed={section === value} onClick={() => setSection(value)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${section === value ? "bg-blue-600 text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
+      {createdLink && <RiderRunLink key={`created-${createdLink.runId}`} runId={createdLink.runId} initial={createdLink} />}
+      <div className="mt-4 flex flex-wrap gap-2" aria-label="Order sections">{[["details", "1. Weigh & review"], ["progress", "2. Processing"], ["delivery", "3. Delivery"], ["payment", "4. Payment"]].map(([value, label]) => <button type="button" key={value} aria-pressed={section === value} onClick={() => setSection(value)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${section === value ? "bg-blue-600 text-white" : "bg-white text-slate-700"}`}>{label}</button>)}</div>
       <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">Current stage: <strong>{order.status}</strong> · Payment: <strong>{order.payment_status}</strong>{nextStatus && <span className="block mt-1">Next stage: {nextStatus}{nextStatus === "Delivered" && order.delivery_run?.status !== "Started" ? " — depart the assigned run in Deliveries first." : ""}</span>}</div>
+      {order.status !== "Delivered" && <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm"><h4 className="font-semibold">Delivery preparation · Zone → Time → Load</h4><dl className="mt-3 grid gap-3 sm:grid-cols-3"><div><dt className="text-slate-600">Zone · from customer address</dt><dd className="mt-1 font-semibold">{hasZone ? order.address?.delivery_zone?.name : "Active zone missing"}</dd>{!hasZone && <a href="/zones" className="mt-2 inline-block font-semibold text-blue-800">Assign address in Zones →</a>}</div><div><dt className="text-slate-600">Time · requested delivery</dt><dd className="mt-1 font-semibold">{requestedTimeLabel(order.delivery_requested_at)}</dd>{!order.delivery_requested_at && <p className="mt-1 text-xs text-slate-600">No requested time: placed last within its zone.</p>}<button type="button" onClick={() => setSection("delivery")} className="mt-2 font-semibold text-blue-800">Review requested times →</button></div><div><dt className="text-slate-600">Load · actual laundry weight</dt><dd className="mt-1 font-semibold">{hasWeight ? `${order.weight} kg` : "Weight not recorded"}</dd>{!hasWeight && <button type="button" onClick={() => { setSection("details"); requestAnimationFrame(() => { const input = document.getElementById("order-weight"); input?.scrollIntoView({ block: "center" }); input?.focus(); }); }} className="mt-2 font-semibold text-blue-800">Record weight below →</button>}</div></dl>{(!hasWeight || !hasZone) && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-amber-950">Next action: {!hasWeight ? "record the actual laundry weight" : "assign this address to an active zone in the existing Zones workspace"}. Ready status remains blocked until weight and zone are complete.</p>}</div>}
+      <div className="mt-5">
+        <div hidden={section !== "details"}>
+          {weightLocked && <div className="mb-3 rounded-lg bg-amber-50 p-3 text-sm"><p>{order.delivery_run_id ? `Weight is locked because this order is assigned to run #${order.delivery_run_id}.` : "Weight is locked because payment was recorded as Paid."}</p>{!order.delivery_run_id && !hasWeight && <><p className="mt-2">This older record was marked paid before weighing. Review and correct its payment record first; do not change a genuine payment without checking the collection.</p><button type="button" onClick={() => setSection("payment")} className="mt-2 min-h-11 rounded-lg border bg-white px-3 font-semibold text-blue-800">Review payment record</button></>}</div>}
+          <label
+            htmlFor="order-weight"
+            className="mb-2 block text-sm font-medium text-[#0f172a]"
+          >
+            Actual laundry weight (kg)
+          </label>
+
+          <input
+            id="order-weight"
+            disabled={weightLocked || isSavingWeight}
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={weight}
+            onChange={(event) =>
+              setWeight(event.target.value)
+            }
+            placeholder="e.g. 5.60"
+            className="w-full rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#0f172a] outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-[#e7f4fd]"
+          />
+
+          <button
+            type="button"
+            onClick={updateWeight}
+            disabled={isSavingWeight || weightLocked}
+            className="mt-3 rounded-xl border border-[#2563eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#178fd0] transition hover:bg-[#edf7ff] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSavingWeight
+              ? "Saving..."
+              : "Save weight & calculate"}
+          </button>
+        </div>
+
+      </div>
       <div hidden={section !== "details" && section !== "delivery"} className="mt-5 space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
         <p><strong>Customer instructions:</strong> {order.notes || "No instructions provided"}</p>
         <p><strong>Address:</strong> {order.address?.address || "No address"}</p>
@@ -676,13 +739,14 @@ function OrderManagementPanel({
       </div>
       {section === "delivery" && <p role="status" className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6">{deliveryHelp}</p>}
       {section === "delivery" && <OrderRequestedTimes order={order} onSaved={updated => onUpdated(updated as Order)} />}
-      {section === "delivery" && order.status === "Ready for Delivery" && order.delivery_status === "Scheduled" && (!order.delivery_run || order.delivery_run.status === "Planned") && <div className="mt-4"><DeliveryAssignment selectedWeight={Number(order.weight || 0)} orderIds={[order.id]} onAssigned={() => {
+      {section === "delivery" && order.status === "Ready for Delivery" && order.delivery_status === "Scheduled" && (!order.delivery_run || order.delivery_run.status === "Planned") && <div className="mt-4"><DeliveryAssignment onRiderLink={setCreatedLink} selectedWeight={Number(order.weight || 0)} orderIds={[order.id]} onAssigned={() => {
         fetch(`${API_URL}/staff/orders`, { headers: { Accept: "application/json", Authorization: `Bearer ${localStorage.getItem("washease_token")}` } })
           .then(response => { if (!response.ok) throw new Error("Unable to refresh order."); return response.json(); })
           .then((orders: Order[]) => { const updated = orders.find(item => item.id === order.id); if (updated) onUpdated(updated); })
           .catch((e: Error) => setError(e.message));
       }} /></div>}
       {section === "delivery" && <a href="/deliveries" className="mt-4 inline-block rounded-lg border px-4 py-2 text-sm font-semibold">Open delivery planning →</a>}
+      {section === "payment" && !hasWeight && <p role="status" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm">Save the actual laundry weight in Laundry &amp; customer before confirming payment. You can still correct an older erroneous Paid record to Unpaid after checking it.</p>}
       <div className="mt-5 space-y-5">
         <div hidden={section !== "progress"}>
           <label
@@ -717,48 +781,13 @@ function OrderManagementPanel({
             onClick={updateStatus}
             disabled={
               isSavingStatus ||
-              status === order.status || (status === "Delivered" && order.delivery_run?.status !== "Started")
+              status === order.status || (status === "Ready for Delivery" && (!hasWeight || !hasZone)) || (status === "Delivered" && order.delivery_run?.status !== "Started")
             }
             className="mt-3 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#178fd0] disabled:cursor-not-allowed disabled:bg-[#9dcde8]"
           >
             {isSavingStatus
               ? "Updating..."
               : `Move to ${status === order.status ? nextStatus || order.status : status}`}
-          </button>
-        </div>
-
-        <div hidden={section !== "details"}>
-          {weightLocked && <p className="mb-3 text-sm text-slate-600">Weight is locked after delivery assignment or payment confirmation.</p>}
-          <label
-            htmlFor="order-weight"
-            className="mb-2 block text-sm font-medium text-[#0f172a]"
-          >
-            Actual laundry weight (kg)
-          </label>
-
-          <input
-            id="order-weight"
-            disabled={weightLocked || isSavingWeight}
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={weight}
-            onChange={(event) =>
-              setWeight(event.target.value)
-            }
-            placeholder="e.g. 5.60"
-            className="w-full rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#0f172a] outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-[#e7f4fd]"
-          />
-
-          <button
-            type="button"
-            onClick={updateWeight}
-            disabled={isSavingWeight || weightLocked}
-            className="mt-3 rounded-xl border border-[#2563eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#178fd0] transition hover:bg-[#edf7ff] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSavingWeight
-              ? "Saving..."
-              : "Save weight & calculate"}
           </button>
         </div>
 
@@ -827,7 +856,7 @@ function OrderManagementPanel({
             onClick={updatePayment}
             disabled={
               isSavingPayment ||
-              !paymentChanged
+              !paymentChanged || (paymentStatus === "Paid" && !hasWeight)
             }
             className="mt-3 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-200"
           >
