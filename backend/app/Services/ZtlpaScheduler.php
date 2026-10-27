@@ -74,6 +74,44 @@ class ZtlpaScheduler
             ->values();
     }
 
+    /**
+     * @return array{batches: array<int, array<string, mixed>>, overweight: array<int, array<string, mixed>>}
+     */
+    public function previewBatches(Collection $orders, float $capacityKg, int $maxOrders): array
+    {
+        $capacity = (int) round($capacityKg * 100);
+        $batches = [];
+        $overweight = [];
+        $current = null;
+        $load = 0;
+        foreach ($this->prioritize($orders) as $order) {
+            $zone = $order->address->deliveryZone;
+            $weight = (int) round((float) $order->weight * 100);
+            $item = ['id' => $order->id, 'order_number' => $order->order_number, 'weight' => $weight / 100];
+            if ($weight > $capacity) {
+                $overweight[] = $item + ['zone_name' => $zone->name];
+
+                continue;
+            }
+            if ($current !== null && ($current['zone_id'] !== $zone->id || $load + $weight > $capacity || count($current['orders']) >= $maxOrders)) {
+                $batches[] = $current;
+                $current = null;
+            }
+            if ($current === null) {
+                $current = ['zone_id' => $zone->id, 'zone_name' => $zone->name, 'orders' => [], 'total_load_kg' => 0];
+                $load = 0;
+            }
+            $current['orders'][] = $item;
+            $load += $weight;
+            $current['total_load_kg'] = $load / 100;
+        }
+        if ($current !== null) {
+            $batches[] = $current;
+        }
+
+        return ['batches' => $batches, 'overweight' => $overweight];
+    }
+
     public function schedule(Collection $orders, int $offset = 0): Collection
     {
         $prioritizedOrders = $this->prioritize($orders);

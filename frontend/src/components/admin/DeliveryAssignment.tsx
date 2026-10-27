@@ -3,14 +3,14 @@ import { useEffect, useState } from "react";
 import type { CreatedRiderLink } from "@/components/admin/RiderRunLink";
 import { API_URL } from "@/lib/api";
 export type DeliveryRun = { id: number; returned_at: string | null; status: string; capacity_kg: string; total_load_kg: string; max_orders: number; rider: { id: number; name: string; phone: string | null; rider_on_duty: boolean }; orders: { id: number }[] };
-export default function DeliveryAssignment({ orderIds, selectedWeight, initialRiderId, onAssigned, onRiderLink }: { orderIds: number[]; selectedWeight?: number; initialRiderId?: number; onAssigned: () => void; onRiderLink?: (result: CreatedRiderLink) => void }) {
+export default function DeliveryAssignment({ orderIds, selectedWeight, initialRiderId, initialCapacity, initialMaxOrders, onAssigned, onRiderLink }: { orderIds: number[]; selectedWeight?: number; initialRiderId?: number; initialCapacity?: string; initialMaxOrders?: string; onAssigned: () => void; onRiderLink?: (result: CreatedRiderLink) => void }) {
   const [runs, setRuns] = useState<DeliveryRun[]>([]);
   const [riders, setRiders] = useState<{ id: number; name: string; availability: string }[]>([]);
   const [runId, setRunId] = useState("");
   const [riderId, setRiderId] = useState(initialRiderId ? String(initialRiderId) : "");
   const [mode, setMode] = useState("new");
-  const [capacity, setCapacity] = useState("");
-  const [maxOrders, setMaxOrders] = useState("20");
+  const [capacity, setCapacity] = useState(initialCapacity ?? "");
+  const [maxOrders, setMaxOrders] = useState(initialMaxOrders ?? "20");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);

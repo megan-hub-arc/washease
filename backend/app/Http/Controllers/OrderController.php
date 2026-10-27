@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Services\OrderBooking;
 use App\Services\ZtlpaScheduler;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,18 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    public function batchPreview(Request $request, ZtlpaScheduler $scheduler): JsonResponse
+    {
+        $this->ensureStaffOrAdmin($request);
+        $validated = $request->validate([
+            'capacity_kg' => ['required', 'numeric', 'min:0.01', 'max:999999.99', 'decimal:0,2'],
+            'max_orders' => ['required', 'integer', 'min:1', 'max:1000'],
+        ]);
+        $orders = Order::with('address.deliveryZone')->where('status', 'Ready for Delivery')->where('delivery_status', 'Scheduled')->whereNull('delivery_run_id')->get();
+
+        return response()->json($scheduler->previewBatches($orders, (float) $validated['capacity_kg'], (int) $validated['max_orders']));
+    }
+
     public function schedule(Request $request, ZtlpaScheduler $scheduler)
     {
         $this->ensureStaffOrAdmin($request);

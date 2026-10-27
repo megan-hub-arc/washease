@@ -10,6 +10,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Services\ZtlpaScheduler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -277,5 +278,78 @@ class OrderSchedulingTest extends TestCase
         $this->assertEquals(3, $order->fresh()->weight);
         $this->assertEquals($sequence, $order->fresh()->delivery_sequence);
         $this->assertEquals($notices, $order->user->notifications()->count());
+    }
+
+    public function test_batch_preview_splits_by_weight_and_zone_without_changing_orders(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'First', 'priority_order' => 1, 'is_active' => true]);
+        $other = DeliveryZone::create(['name' => 'Other', 'priority_order' => 2, 'is_active' => true]);
+        $six = $this->readyOrder($zone, '2026-10-28 09:00:00', 6);
+        $four = $this->readyOrder($zone, '2026-10-28 10:00:00', 4);
+        $three = $this->readyOrder($zone, null, 3);
+        $another = $this->readyOrder($other, '2026-10-28 08:00:00', 2);
+        $this->postJson('/api/staff/orders/schedule')->assertOk();
+        $before = Order::orderBy('id')->get()->toArray();
+        $notices = DB::table('notifications')->count();
+        $response = $this->getJson('/api/staff/orders/batch-preview?capacity_kg=10&max_orders=20')->assertOk();
+        $this->assertEquals([[$six->id, $four->id], [$three->id], [$another->id]], array_map(fn (array $batch): array => array_column($batch['orders'], 'id'), $response->json('batches')));
+        $this->assertEquals([10, 3, 2], array_column($response->json('batches'), 'total_load_kg'));
+        $response->assertJsonCount(0, 'overweight');
+        $this->assertEquals($before, Order::orderBy('id')->get()->toArray());
+        $this->assertDatabaseCount('delivery_runs', 0);
+        $this->assertEquals($notices, DB::table('notifications')->count());
+    }
+
+    public function test_batch_preview_handles_decimal_capacity_count_limit_and_oversized_first_order(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $zone = DeliveryZone::create(['name' => 'First', 'priority_order' => 1, 'is_active' => true]);
+        $large = $this->readyOrder($zone, '2026-10-28 08:00:00', 12);
+        $first = $this->readyOrder($zone, '2026-10-28 09:00:00', 0.1);
+        $second = $this->readyOrder($zone, '2026-10-28 10:00:00', 0.2);
+        $third = $this->readyOrder($zone, null, 0.1);
+        $this->postJson('/api/staff/orders/schedule')->assertOk();
+        $response = $this->getJson('/api/staff/orders/batch-preview?capacity_kg=0.30&max_orders=20')->assertOk();
+        $this->assertEquals([$first->id, $second->id], array_column($response->json('batches.0.orders'), 'id'));
+        $this->assertEquals(0.3, $response->json('batches.0.total_load_kg'));
+        $response->assertJsonPath('batches.1.orders.0.id', $third->id)->assertJsonPath('overweight.0.id', $large->id);
+        $limited = $this->getJson('/api/staff/orders/batch-preview?capacity_kg=10&max_orders=1')->assertOk()->assertJsonCount(3, 'batches')->assertJsonCount(1, 'overweight');
+        foreach ($limited->json('batches') as $batch) {
+            $this->assertCount(1, $batch['orders']);
+        }
+    }
+
+    public function test_batch_preview_excludes_unready_invalid_and_assigned_orders(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        $zone = DeliveryZone::create(['name' => 'First', 'priority_order' => 1, 'is_active' => true]);
+        $inactive = DeliveryZone::create(['name' => 'Inactive', 'priority_order' => 2, 'is_active' => false]);
+        $valid = $this->readyOrder($zone, null);
+        $this->readyOrder($inactive, null);
+        $this->readyOrder($zone, null, 0);
+        $this->readyOrder($zone, null)->update(['status' => 'Processing']);
+        $missing = $this->readyOrder($zone, null);
+        $missing->address->update(['delivery_zone_id' => null]);
+        $assigned = $this->readyOrder($zone, null);
+        $run = DeliveryRun::create(['rider_id' => User::factory()->create(['role' => 'rider'])->id, 'status' => 'Planned', 'capacity_kg' => 10, 'max_orders' => 20, 'total_load_kg' => 3]);
+        $assigned->update(['delivery_run_id' => $run->id]);
+        $this->postJson('/api/staff/orders/schedule')->assertOk();
+        $this->getJson('/api/staff/orders/batch-preview?capacity_kg=10&max_orders=20')->assertOk()->assertJsonCount(1, 'batches')->assertJsonCount(1, 'batches.0.orders')->assertJsonPath('batches.0.orders.0.id', $valid->id)->assertJsonCount(0, 'overweight');
+        $this->assertEquals($run->id, $assigned->fresh()->delivery_run_id);
+    }
+
+    public function test_batch_preview_checks_access_and_rejects_invalid_limits(): void
+    {
+        $this->getJson('/api/staff/orders/batch-preview?capacity_kg=10&max_orders=20')->assertUnauthorized();
+        foreach (['customer', 'rider'] as $role) {
+            Sanctum::actingAs(User::factory()->create(['role' => $role]));
+            $this->getJson('/api/staff/orders/batch-preview?capacity_kg=10&max_orders=20')->assertForbidden();
+        }
+        Sanctum::actingAs(User::factory()->create(['role' => 'staff']));
+        foreach (['', '?capacity_kg=0&max_orders=20', '?capacity_kg=-1&max_orders=20', '?capacity_kg=0.001&max_orders=20', '?capacity_kg=1000000&max_orders=20', '?capacity_kg=abc&max_orders=20', '?capacity_kg=10&max_orders=0', '?capacity_kg=10&max_orders=1001', '?capacity_kg=10&max_orders=1.5'] as $query) {
+            $this->getJson('/api/staff/orders/batch-preview'.$query)->assertUnprocessable();
+        }
+        $this->getJson('/api/staff/orders/batch-preview?capacity_kg=10&max_orders=20')->assertOk()->assertExactJson(['batches' => [], 'overweight' => []]);
     }
 }

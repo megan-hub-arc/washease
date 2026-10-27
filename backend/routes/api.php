@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus']);
 
     Route::get('/staff/orders', [OrderController::class, 'staffIndex']);
+    Route::get('/staff/orders/batch-preview', [OrderController::class, 'batchPreview']);
     Route::post('/staff/orders/schedule', [OrderController::class, 'schedule']);
     Route::put('/staff/orders/{order}/requested-times', [OrderController::class, 'updateRequestedTimes']);
     Route::put('/staff/orders/{order}/weight', [OrderController::class, 'updateWeight']);
