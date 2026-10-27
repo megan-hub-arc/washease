@@ -2,6 +2,7 @@
 
 import { API_URL } from "@/lib/api";
 import { FormEvent, useEffect, useState } from "react";
+import AuditHistory from "@/components/admin/AuditHistory";
 import AdminShell from "@/components/admin/AdminShell";
 
 type Service = {
@@ -390,6 +391,7 @@ export default function SettingsPage() {
             </div>
           </form>
         </section>
+        <AuditHistory />
       </div>
     </AdminShell>
   );

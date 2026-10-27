@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\AuditLog;
 use App\Models\Order;
 use App\Services\CustomerOrderUpdates;
 
@@ -14,6 +15,9 @@ class OrderObserver
 
     public function updated(Order $order): void
     {
+        foreach (['order_status', 'order_payment', 'order_assignment', 'order_weight', 'order_requested_times'] as $action) {
+            AuditLog::recordChanges($order, $action);
+        }
         if ($order->wasChanged('status')) {
             $this->notify($order, 'status');
         }

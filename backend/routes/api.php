@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerBroadcastController;
 use App\Http\Controllers\CustomerController;
@@ -73,6 +74,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/staff/delivery-runs/{deliveryRun}/start', [DeliveryRunController::class, 'start']);
     Route::post('/staff/delivery-runs', [DeliveryRunController::class, 'store']);
     Route::post('/staff/delivery-runs/{deliveryRun}/orders', [DeliveryRunController::class, 'assignOrders']);
+
+    Route::get('/staff/audit-logs', [AuditLogController::class, 'index']);
 
     Route::get('/staff/reports', [OrderController::class, 'reports']);
 });
